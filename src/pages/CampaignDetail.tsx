@@ -12,9 +12,9 @@ import { BackDialog } from "@/components/campaign/BackDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCampaign,
-  useLaunchCampaign,
   useMe,
   useRewards,
+  useSubmitCampaign,
 } from "@/lib/queries";
 import { daysLeft, formatMoney, pad2, pct } from "@/lib/utils";
 import type { Reward } from "@/lib/types";
@@ -28,7 +28,7 @@ export default function CampaignDetail() {
   const camp = useCampaign(campId);
   const rewards = useRewards(campId);
   const me = useMe();
-  const launch = useLaunchCampaign(campId);
+  const submit = useSubmitCampaign(campId);
   const [pledgeOpen, setPledgeOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
@@ -71,10 +71,10 @@ export default function CampaignDetail() {
     setPledgeOpen(true);
   }
 
-  async function handleLaunch() {
+  async function handleSubmit() {
     try {
-      await launch.mutateAsync();
-      toast.success("Campaign launched.");
+      await submit.mutateAsync();
+      toast.success("Submitted for review.");
     } catch (err) {
       toast.error(apiError(err));
     }
@@ -196,16 +196,25 @@ export default function CampaignDetail() {
                   <Button
                     className="w-full"
                     size="lg"
-                    onClick={handleLaunch}
-                    disabled={launch.isPending}
+                    onClick={handleSubmit}
+                    disabled={submit.isPending}
                   >
-                    {launch.isPending ? "Launching…" : "Launch campaign"}
+                    {submit.isPending ? "Submitting…" : "Send for review"}
                   </Button>
                   <Button asChild variant="outline" className="w-full">
                     <Link to={`/create/${c.camp_id}`}>Edit draft</Link>
                   </Button>
                 </>
-              ) : isOwner ? (
+              ) : isOwner && c.status === "pending_review" ? (
+                <>
+                  <Button className="w-full" size="lg" disabled>
+                    Awaiting review
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Your campaign is under review. We'll notify you once it's approved.
+                  </p>
+                </>
+              ) : isOwner && (c.status === "active" || c.status === "funded") ? (
                 <Button asChild variant="outline" className="w-full">
                   <Link to={`/create/${c.camp_id}`}>Edit campaign</Link>
                 </Button>

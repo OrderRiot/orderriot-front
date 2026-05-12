@@ -53,7 +53,7 @@ export default function Landing() {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/10 text-accent rounded-full text-sm font-semibold mb-8">
             <Zap className="h-3.5 w-3.5" />
-            All-or-nothing crowdfunding
+            All-or-nothing preorders
           </div>
           <h1 className="font-display text-display-xl text-balance">
             Fund the things<br />worth making.

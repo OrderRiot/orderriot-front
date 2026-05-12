@@ -1,8 +1,56 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import type { CampaignListItem } from "@/lib/types";
-import { daysLeft, formatMoney, pct } from "@/lib/utils";
+import { daysLeft, formatMoney, pct, getYouTubeId, isVideoUrl } from "@/lib/utils";
+
+function CoverImage({ url, title, className }: { url: string; title: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+
+  const fallback = (
+    <div className="h-full w-full flex items-center justify-center font-display font-semibold text-5xl text-muted-foreground/30">
+      {title.slice(0, 2)}
+    </div>
+  );
+
+  if (failed) return fallback;
+
+  const ytId = getYouTubeId(url);
+  if (ytId) {
+    return (
+      <img
+        src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+        alt={title}
+        className={className}
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  if (isVideoUrl(url)) {
+    return (
+      <video
+        src={url}
+        preload="metadata"
+        muted
+        playsInline
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={url}
+      alt={title}
+      className={className}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function CampaignCard({
   campaign,
@@ -30,11 +78,10 @@ export function CampaignCard({
         )}
         <div className="md:col-span-5 aspect-[4/3] overflow-hidden bg-muted rounded-xl">
           {cover ? (
-            <img
-              src={cover}
-              alt={campaign.title}
+            <CoverImage
+              url={cover}
+              title={campaign.title}
               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-              loading="lazy"
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-muted-foreground font-display font-semibold text-3xl">
@@ -96,12 +143,7 @@ export function CampaignCard({
       >
         <div className="h-14 w-14 shrink-0 bg-muted overflow-hidden rounded-lg">
           {cover && (
-            <img
-              src={cover}
-              alt=""
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+            <CoverImage url={cover} title={campaign.title} className="h-full w-full object-cover" />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -124,10 +166,9 @@ export function CampaignCard({
     >
       <div className="aspect-[4/3] overflow-hidden bg-muted rounded-xl">
         {cover ? (
-          <img
-            src={cover}
-            alt={campaign.title}
-            loading="lazy"
+          <CoverImage
+            url={cover}
+            title={campaign.title}
             className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           />
         ) : (

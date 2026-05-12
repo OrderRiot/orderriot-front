@@ -29,7 +29,7 @@ export interface AuthTokens {
   token_type: "bearer";
 }
 
-export type CampaignStatus = "draft" | "active" | "funded" | "failed" | "cancelled";
+export type CampaignStatus = "draft" | "pending_review" | "active" | "funded" | "failed" | "cancelled";
 
 export interface CampaignListItem {
   camp_id: number;

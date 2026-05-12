@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const statusColor: Record<string, "default" | "solid" | "muted" | "outline"> = {
   draft: "muted",
+  pending_review: "default",
   active: "solid",
   funded: "default",
   failed: "outline",
@@ -55,8 +56,9 @@ export default function MyCampaigns() {
       {list.data && list.data.length > 0 && (
         <ul className="border-y border-line divide-y divide-line">
           {list.data.map((c, i) => {
-            const isDraft = c.status === "draft";
-            const target = isDraft ? `/create/${c.camp_id}` : `/campaigns/${c.camp_id}`;
+            const target = c.status === "draft"
+              ? `/create/${c.camp_id}`
+              : `/campaigns/${c.camp_id}`;
             const percent = pct(c.current_amount, c.goal_amount);
             return (
               <li key={c.camp_id}>

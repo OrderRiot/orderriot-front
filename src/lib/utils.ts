@@ -7,18 +7,18 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatMoney(amount: number | string, opts?: { compact?: boolean }) {
   const n = typeof amount === "string" ? Number(amount) : amount;
-  if (Number.isNaN(n)) return "$0";
+  if (Number.isNaN(n)) return "₹0";
   if (opts?.compact && n >= 1000) {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       notation: "compact",
       maximumFractionDigits: 1,
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(n);
   }
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
     maximumFractionDigits: 0,
   }).format(n);
 }
@@ -58,4 +58,15 @@ export function initials(name?: string | null) {
 
 export function pad2(n: number) {
   return n.toString().padStart(2, "0");
+}
+
+export function isVideoUrl(url: string) {
+  return /\.(mp4|mov|webm|ogg|avi)(\?.*)?$/i.test(url);
+}
+
+export function getYouTubeId(url: string): string | null {
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return m ? (m[1] ?? null) : null;
 }

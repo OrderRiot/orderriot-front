@@ -80,13 +80,13 @@ export function BackDialog({
           <DialogDescription>
             {reward
               ? `Minimum ${formatMoney(reward.min_amount)}. Pledge more if you want.`
-              : "Choose any amount. Every dollar gets the project closer."}
+              : "Choose any amount. Every rupee gets the project closer."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-6 mt-2">
           <div>
-            <Label htmlFor="amount">Pledge amount (USD)</Label>
+            <Label htmlFor="amount">Pledge amount (₹)</Label>
             <Input
               id="amount"
               type="number"

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Plus, Rocket, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, Plus, SendHorizonal, Trash2, Upload, X, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,12 @@ import {
   useAddReward,
   useCampaign,
   useCreateCampaign,
-  useLaunchCampaign,
   useRewards,
+  useSubmitCampaign,
   useUpdateCampaign,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
-import { formatMoney, pct } from "@/lib/utils";
+import { formatMoney, getYouTubeId, isVideoUrl, pct } from "@/lib/utils";
 import type { Campaign } from "@/lib/types";
 
 const categories = [
@@ -89,7 +89,7 @@ export default function CreateCampaign() {
   const existing = useCampaign(editingId ?? 0);
   const create = useCreateCampaign();
   const update = useUpdateCampaign(editingId ?? 0);
-  const launch = useLaunchCampaign(editingId ?? 0);
+  const submit = useSubmitCampaign(editingId ?? 0);
   const navigate = useNavigate();
 
   const [step, setStep] = useState<StepKey>("basics");
@@ -212,15 +212,20 @@ export default function CreateCampaign() {
             campId={draftId}
             onBack={() => setStep("rewards")}
             onLaunch={async () => {
+              if (existing.data?.status !== "draft") {
+                toast.success("Changes saved.");
+                navigate(`/campaigns/${draftId}`);
+                return;
+              }
               try {
-                await launch.mutateAsync();
-                toast.success("Campaign launched. Good luck.");
+                await submit.mutateAsync();
+                toast.success("Submitted for review.");
                 navigate(`/campaigns/${draftId}`);
               } catch (err) {
                 toast.error(apiError(err));
               }
             }}
-            launching={launch.isPending}
+            launching={submit.isPending}
           />
         )}
       </div>
@@ -446,7 +451,7 @@ function GoalStep({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <Label htmlFor="goal">Funding goal (USD)</Label>
+          <Label htmlFor="goal">Funding goal (₹)</Label>
           <Input
             id="goal"
             type="number"
@@ -516,7 +521,16 @@ function MediaStep({
 }) {
   const [media, setMedia] = useState<string[]>(initial ?? []);
   const [uploading, setUploading] = useState(false);
+  const [ytUrl, setYtUrl] = useState("");
+  const [addingYt, setAddingYt] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const updateMedia = useUpdateCampaign(campId);
+
+  async function persist(updated: string[]) {
+    await updateMedia.mutateAsync({ media: updated });
+    setMedia(updated);
+  }
 
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -532,6 +546,38 @@ function MediaStep({
     }
   }
 
+  async function addYouTube() {
+    const ytId = getYouTubeId(ytUrl.trim());
+    if (!ytId) { toast.error("Paste a valid YouTube URL."); return; }
+    setAddingYt(true);
+    try {
+      await persist([...media, ytUrl.trim()]);
+      setYtUrl("");
+      toast.success("YouTube video added.");
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally {
+      setAddingYt(false);
+    }
+  }
+
+  async function remove(i: number) {
+    try {
+      await persist(media.filter((_, idx) => idx !== i));
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  function onDrop(targetIndex: number) {
+    if (dragIndex === null || dragIndex === targetIndex) return;
+    const updated = [...media];
+    const [moved] = updated.splice(dragIndex, 1);
+    updated.splice(targetIndex, 0, moved!);
+    setDragIndex(null);
+    persist(updated).catch((err) => toast.error(apiError(err)));
+  }
+
   return (
     <div className="space-y-10">
       <header>
@@ -540,7 +586,7 @@ function MediaStep({
           Show, don't <span className="italic-display">tell.</span>
         </h2>
         <p className="mt-3 text-muted-foreground max-w-xl">
-          Upload images or short videos. The first one is your cover.
+          Upload images or short videos. The first one is your cover. Drag to reorder.
         </p>
       </header>
 
@@ -566,18 +612,84 @@ function MediaStep({
         />
       </button>
 
+      <div className="border border-dashed border-line p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Youtube className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <span className="font-display text-lg">Embed a YouTube video</span>
+        </div>
+        <div className="flex gap-3">
+          <Input
+            placeholder="https://youtube.com/watch?v=..."
+            value={ytUrl}
+            onChange={(e) => setYtUrl(e.target.value)}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addYouTube}
+            disabled={addingYt || !ytUrl}
+          >
+            {addingYt ? "Adding…" : "Add"}
+          </Button>
+        </div>
+      </div>
+
       {media.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {media.map((url, i) => (
-            <div key={url} className="aspect-[4/3] bg-muted relative group">
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              {i === 0 && (
-                <span className="absolute top-2 left-2 bg-ink text-paper px-2 py-0.5 text-[10px] uppercase tracking-[0.18em]">
-                  Cover
-                </span>
-              )}
-            </div>
-          ))}
+          {media.map((url, i) => {
+            const ytId = getYouTubeId(url);
+            const isVid = isVideoUrl(url);
+            return (
+              <div
+                key={url}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onDrop(i)}
+                onDragEnd={() => setDragIndex(null)}
+                className={`aspect-[4/3] bg-muted relative overflow-hidden cursor-grab group ${
+                  dragIndex === i ? "opacity-40" : ""
+                }`}
+              >
+                {ytId ? (
+                  <img
+                    src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+                    alt=""
+                    className="h-full w-full object-cover pointer-events-none"
+                  />
+                ) : isVid ? (
+                  <>
+                    <video
+                      src={url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover pointer-events-none"
+                    />
+                    <span className="absolute inset-0 grid place-items-center pointer-events-none">
+                      <Play className="h-7 w-7 fill-white text-white drop-shadow" />
+                    </span>
+                  </>
+
+                ) : (
+                  <img src={url} alt="" className="h-full w-full object-cover pointer-events-none" />
+                )}
+                {i === 0 && (
+                  <span className="absolute top-2 left-2 bg-ink text-paper px-2 py-0.5 text-[10px] uppercase tracking-[0.18em]">
+                    Cover
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  className="absolute top-1 right-1 bg-ink/80 text-paper p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -721,7 +833,7 @@ function RewardsStep({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <Label htmlFor="r-min">Min pledge (USD)</Label>
+              <Label htmlFor="r-min">Min pledge (₹)</Label>
               <Input
                 id="r-min"
                 type="number"
@@ -864,7 +976,13 @@ function ReviewStep({
           <ArrowLeft /> Back
         </Button>
         <Button type="button" size="lg" onClick={onLaunch} disabled={launching}>
-          <Rocket /> {launching ? "Launching…" : "Launch campaign"}
+          {c.status === "draft" ? (
+            <>{launching ? "Submitting…" : <><SendHorizonal /> Send for review</>}</>
+          ) : c.status === "pending_review" ? (
+            "Awaiting review"
+          ) : (
+            "Save changes"
+          )}
         </Button>
       </div>
     </div>

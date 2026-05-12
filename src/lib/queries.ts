@@ -177,6 +177,54 @@ export function useLaunchCampaign(id: number) {
   });
 }
 
+export function useSubmitCampaign(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post<Campaign>(`/campaigns/${id}/submit`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: qk.myCampaigns });
+    },
+  });
+}
+
+// ── Admin ─────────────────────────────────────────────────────────
+
+export function useAdminCampaigns(status?: CampaignStatus) {
+  return useQuery({
+    queryKey: ["admin", "campaigns", status ?? "all"],
+    queryFn: async () => {
+      const params = status ? { status } : {};
+      return (await api.get<Campaign[]>("/admin/campaigns", { params })).data;
+    },
+    enabled: !!tokenStore.access(),
+  });
+}
+
+export function useApproveCampaign(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.post<Campaign>(`/admin/campaigns/${id}/approve`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+    },
+  });
+}
+
+export function useRejectCampaign(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () =>
+      (await api.post<Campaign>(`/admin/campaigns/${id}/reject`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+    },
+  });
+}
+
 export function useCancelCampaign(id: number) {
   const qc = useQueryClient();
   return useMutation({

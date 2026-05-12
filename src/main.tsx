@@ -16,6 +16,7 @@ import MyCampaigns from "@/pages/MyCampaigns";
 import MyContributions from "@/pages/MyContributions";
 import PublicProfile from "@/pages/PublicProfile";
 import About from "@/pages/About";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/NotFound";
 
 import "./index.css";
@@ -80,6 +81,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <MyContributions />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/admin",
+        element: (
+          <ProtectedRoute>
+            <AdminDashboard />
           </ProtectedRoute>
         ),
       },

@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLogout, useMe } from "@/lib/queries";
 import { initials } from "@/lib/utils";
+import { UserType } from "@/lib/types";
 
 const links = [
   { to: "/discover", label: "Discover" },
@@ -91,6 +92,14 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => navigate("/create")}>
                   Start a campaign
                 </DropdownMenuItem>
+                {me.data.user_type === UserType.admin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      Admin dashboard
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => {
