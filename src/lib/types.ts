@@ -52,6 +52,25 @@ export interface Campaign extends CampaignListItem {
   team_members: number[] | null;
   key_backers: number[] | null;
   launch_date: string | null;
+  documents?: string[] | null; // admin-only, never shown publicly
+}
+
+export type VerificationStatus = "pending" | "approved" | "rejected";
+
+export interface VerificationRequest {
+  id: number;
+  user_id: number;
+  id_proof_urls: string[];
+  status: VerificationStatus;
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface VerificationWithUser extends VerificationRequest {
+  username: string;
+  email: string;
+  avatar_url: string | null;
 }
 
 export interface Reward {

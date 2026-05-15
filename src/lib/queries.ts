@@ -19,6 +19,9 @@ import type {
   Reward,
   RewardCreatePayload,
   User,
+  VerificationRequest,
+  VerificationStatus,
+  VerificationWithUser,
 } from "./types";
 
 export const qk = {
@@ -32,6 +35,8 @@ export const qk = {
   reactionCounts: (campId: number, commentId: number) =>
     ["campaign", campId, "comment", commentId, "reactions"] as const,
   myContributions: ["contributions", "mine"] as const,
+  myVerification: ["verification", "me"] as const,
+  adminVerifications: (status?: VerificationStatus) => ["admin", "verifications", status ?? "pending"] as const,
 };
 
 // ── Auth ─────────────────────────────────────────────────────────
@@ -340,4 +345,64 @@ export async function uploadCampaignMedia(campId: number, files: File[]): Promis
     { headers: { "Content-Type": "multipart/form-data" } },
   );
   return res.data.all_media;
+}
+
+export async function uploadIdProof(files: File[]): Promise<{ uploaded: string[]; status: string }> {
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+  const res = await api.post<{ uploaded: string[]; status: string }>("/uploads/id-proof", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+}
+
+export async function uploadCampaignDocuments(campId: number, files: File[]): Promise<string[]> {
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+  const res = await api.post<{ uploaded: string[]; all_documents: string[] }>(
+    `/uploads/campaign/${campId}/documents`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data.all_documents;
+}
+
+// ── Verification (user) ───────────────────────────────────────────
+
+export function useMyVerification() {
+  return useQuery({
+    queryKey: qk.myVerification,
+    queryFn: async () => (await api.get<VerificationRequest | null>("/verifications/me")).data,
+    enabled: !!tokenStore.access(),
+  });
+}
+
+// ── Admin: Verifications ─────────────────────────────────────────
+
+export function useAdminVerifications(status?: VerificationStatus) {
+  return useQuery({
+    queryKey: qk.adminVerifications(status),
+    queryFn: async () => {
+      const params = status ? { status } : {};
+      return (await api.get<VerificationWithUser[]>("/admin/verifications", { params })).data;
+    },
+    enabled: !!tokenStore.access(),
+  });
+}
+
+export function useApproveVerification(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.post(`/admin/verifications/${id}/approve`)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "verifications"] }),
+  });
+}
+
+export function useRejectVerification(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (note?: string) =>
+      (await api.post(`/admin/verifications/${id}/reject`, { note: note ?? null })).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "verifications"] }),
+  });
 }

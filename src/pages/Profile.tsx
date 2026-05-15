@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Camera, ExternalLink } from "lucide-react";
+import { Camera, ExternalLink, ShieldCheck, ShieldX, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/select";
 import {
   uploadAvatar,
+  uploadIdProof,
   useMe,
+  useMyVerification,
   useUpdateMe,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
@@ -160,11 +162,8 @@ export default function Profile() {
                 </dt>
                 <dd className="mt-1">{typeLabel[user.user_type] ?? "Member"}</dd>
               </div>
-              <div>
-                <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                  Verified
-                </dt>
-                <dd className="mt-1">{user.isverified ? "Yes" : "Not yet"}</dd>
+              <div className="col-span-2">
+                <VerificationSection />
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -275,6 +274,111 @@ export default function Profile() {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+function VerificationSection() {
+  const verification = useMyVerification();
+  const idInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const qc = useQueryClient();
+
+  async function handleIdUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      await uploadIdProof(Array.from(files));
+      await qc.invalidateQueries({ queryKey: ["verification", "me"] });
+      toast.success("ID uploaded. We'll review it shortly.");
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const v = verification.data;
+  const status = v?.status;
+
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        Identity verification
+      </dt>
+
+      {!v && !verification.isLoading && (
+        <div className="mt-2">
+          <p className="text-sm text-muted-foreground mb-3">
+            Upload a government-issued ID (Aadhaar, passport, etc.) to get verified.
+            Front and back photos accepted.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={uploading}
+            onClick={() => idInputRef.current?.click()}
+            className="gap-2"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {uploading ? "Uploading…" : "Upload ID proof"}
+          </Button>
+          <input
+            ref={idInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => handleIdUpload(e.target.files)}
+          />
+        </div>
+      )}
+
+      {status === "pending" && (
+        <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+          Under review — we'll notify you once approved.
+        </div>
+      )}
+
+      {status === "approved" && (
+        <div className="mt-2 flex items-center gap-2 text-sm text-green-700">
+          <ShieldCheck className="h-4 w-4" />
+          Verified
+        </div>
+      )}
+
+      {status === "rejected" && (
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <ShieldX className="h-4 w-4" />
+            Rejected
+          </div>
+          {v?.admin_note && (
+            <p className="text-sm text-muted-foreground border-l-2 border-line pl-3">
+              {v.admin_note}
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={uploading}
+            onClick={() => idInputRef.current?.click()}
+            className="gap-2 mt-2"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {uploading ? "Uploading…" : "Resubmit ID proof"}
+          </Button>
+          <input
+            ref={idInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            multiple
+            className="hidden"
+            onChange={(e) => handleIdUpload(e.target.files)}
+          />
+        </div>
+      )}
     </div>
   );
 }

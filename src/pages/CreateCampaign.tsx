@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Play, Plus, SendHorizonal, Trash2, Upload, X, Youtube } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Play, Plus, SendHorizonal, Trash2, Upload, X, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  uploadCampaignDocuments,
   uploadCampaignMedia,
   useAddReward,
   useCampaign,
@@ -73,14 +74,15 @@ const rewardSchema = z.object({
   estimated_delivery: z.string().optional(),
 });
 
-type StepKey = "basics" | "story" | "goal" | "media" | "rewards" | "review";
+type StepKey = "basics" | "story" | "goal" | "media" | "rewards" | "documents" | "review";
 const steps: { key: StepKey; title: string; caption: string }[] = [
-  { key: "basics", title: "Basics", caption: "Title, category, location" },
-  { key: "story", title: "Story", caption: "What you're making and why" },
-  { key: "goal", title: "Goal", caption: "Funding target & deadline" },
-  { key: "media", title: "Media", caption: "Cover image and gallery" },
-  { key: "rewards", title: "Rewards", caption: "What backers get" },
-  { key: "review", title: "Review", caption: "Launch when ready" },
+  { key: "basics",    title: "Basics",    caption: "Title, category, location" },
+  { key: "story",     title: "Story",     caption: "What you're making and why" },
+  { key: "goal",      title: "Goal",      caption: "Funding target & deadline" },
+  { key: "media",     title: "Media",     caption: "Cover image and gallery" },
+  { key: "rewards",   title: "Rewards",   caption: "What backers get" },
+  { key: "documents", title: "Documents", caption: "Legal & project files for review" },
+  { key: "review",    title: "Review",    caption: "Submit when ready" },
 ];
 
 export default function CreateCampaign() {
@@ -203,6 +205,14 @@ export default function CreateCampaign() {
           <RewardsStep
             campId={draftId}
             onBack={() => setStep("media")}
+            onNext={() => setStep("documents")}
+          />
+        )}
+
+        {step === "documents" && draftId && (
+          <DocumentsStep
+            campId={draftId}
+            onBack={() => setStep("rewards")}
             onNext={() => setStep("review")}
           />
         )}
@@ -210,7 +220,7 @@ export default function CreateCampaign() {
         {step === "review" && draftId && (
           <ReviewStep
             campId={draftId}
-            onBack={() => setStep("rewards")}
+            onBack={() => setStep("documents")}
             onLaunch={async () => {
               if (existing.data?.status !== "draft") {
                 toast.success("Changes saved.");
@@ -877,7 +887,116 @@ function RewardsStep({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// STEP 6 — REVIEW & LAUNCH
+// STEP 6 — DOCUMENTS
+// ─────────────────────────────────────────────────────────────────
+function DocumentsStep({
+  campId,
+  onBack,
+  onNext,
+}: {
+  campId: number;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const camp = useCampaign(campId);
+  const [uploading, setUploading] = useState(false);
+  const [docs, setDocs] = useState<string[]>(() => camp.data?.documents ?? []);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync once campaign data loads
+  useEffect(() => {
+    if (camp.data?.documents) setDocs(camp.data.documents);
+  }, [camp.data?.documents]);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const all = await uploadCampaignDocuments(campId, Array.from(files));
+      setDocs(all);
+      toast.success("Documents uploaded.");
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="space-y-10">
+      <header>
+        <div className="editorial-index">— 06 / 07</div>
+        <h2 className="font-display text-display-md mt-3 leading-[1.02] text-balance">
+          Supporting <span className="italic-display">documents.</span>
+        </h2>
+        <p className="mt-3 text-muted-foreground max-w-xl">
+          Upload any legal, project, or identity documents for the review team. These are
+          private and never shown publicly. You can skip this and add them later.
+        </p>
+      </header>
+
+      <div
+        className="border-2 border-dashed border-line rounded-xl p-10 flex flex-col items-center gap-4 text-center cursor-pointer hover:border-ink transition-colors"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+      >
+        <Upload className="h-8 w-8 text-muted-foreground" />
+        <div>
+          <div className="font-semibold">Click or drag files here</div>
+          <div className="text-sm text-muted-foreground mt-1">
+            PDF, images, or any file up to 25 MB &mdash; max 10 documents
+          </div>
+        </div>
+        {uploading && <div className="text-sm text-muted-foreground">Uploading…</div>}
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </div>
+
+      {docs.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Uploaded ({docs.length})
+          </div>
+          {docs.map((url, i) => {
+            const name = decodeURIComponent(url.split("/").pop() ?? `File ${i + 1}`);
+            return (
+              <div key={i} className="flex items-center gap-3 py-2 border-b border-line">
+                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm flex-1 truncate">{name}</span>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-accent hover:underline shrink-0"
+                >
+                  View
+                </a>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex justify-between pt-6 border-t border-line">
+        <Button type="button" variant="ghost" size="lg" onClick={onBack}>
+          <ArrowLeft /> Back
+        </Button>
+        <Button type="button" size="lg" onClick={onNext}>
+          Continue <ArrowRight />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STEP 7 — REVIEW & SUBMIT
 // ─────────────────────────────────────────────────────────────────
 function ReviewStep({
   campId,
@@ -921,7 +1040,7 @@ function ReviewStep({
   return (
     <div className="space-y-10">
       <header>
-        <div className="editorial-index">— 06 / 06</div>
+        <div className="editorial-index">— 07 / 07</div>
         <h2 className="font-display text-display-md mt-3 leading-[1.02] text-balance">
           One last <span className="italic-display">look.</span>
         </h2>
