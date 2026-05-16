@@ -82,7 +82,7 @@ export default function OrganizationPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-display text-3xl md:text-4xl font-semibold">{o.name}</h1>
               {o.status === "verified" && (
-                <ShieldCheck className="h-5 w-5 text-green-600" title="Verified organization" />
+                <ShieldCheck className="h-5 w-5 text-green-600" aria-label="Verified organization" />
               )}
             </div>
             <div className="flex flex-wrap gap-3 mt-1.5 text-sm text-muted-foreground">
@@ -431,7 +431,7 @@ function PortfolioCard({
   orgId: number; itemId: number; isOwner: boolean;
   title: string; description: string | null; link: string | null; tags: string[] | null;
 }) {
-  const del = useDeletePortfolioItem(orgId);
+  const del = useDeleteOrgPortfolioItem(orgId);
 
   async function handleDelete() {
     try {

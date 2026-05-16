@@ -784,8 +784,9 @@ export function useUpdateCollab(id: number) {
 export function useCloseCollab(id: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (filled = false) =>
-      (await api.post(`/collabs/${id}/close`, null, { params: { filled } })).data,
+    mutationFn: async (filled: boolean = false) => {
+      await api.post(`/collabs/${id}/close`, null, { params: { filled } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.collab(id) });
       qc.invalidateQueries({ queryKey: qk.myCollabs });
