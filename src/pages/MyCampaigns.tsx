@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/campaign/ProgressBar";
@@ -56,12 +56,13 @@ export default function MyCampaigns() {
       {list.data && list.data.length > 0 && (
         <ul className="border-y border-line divide-y divide-line">
           {list.data.map((c, i) => {
+            const isRejected = c.status === "draft" && !!c.rejection_note;
             const target = c.status === "draft"
               ? `/create/${c.camp_id}`
               : `/campaigns/${c.camp_id}`;
             const percent = pct(c.current_amount, c.goal_amount);
             return (
-              <li key={c.camp_id}>
+              <li key={c.camp_id} className="border-b border-line last:border-b-0">
                 <Link
                   to={target}
                   className="grid grid-cols-12 items-center gap-4 py-6 group"
@@ -87,13 +88,22 @@ export default function MyCampaigns() {
                       </span>
                     </div>
                   </div>
-                  <div className="col-span-4 md:col-span-2">
-                    <Badge variant={statusColor[c.status] ?? "outline"}>{c.status}</Badge>
+                  <div className="col-span-4 md:col-span-2 flex flex-col gap-1">
+                    {isRejected
+                      ? <Badge variant="outline" className="text-destructive border-destructive/40">Revision needed</Badge>
+                      : <Badge variant={statusColor[c.status] ?? "outline"}>{c.status.replace("_", " ")}</Badge>
+                    }
                   </div>
                   <div className="col-span-2 md:col-span-1 text-right">
                     <ArrowUpRight className="inline h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </div>
                 </Link>
+                {isRejected && c.rejection_note && (
+                  <div className="ml-[calc(1/12*100%+1rem)] pb-4 flex items-start gap-2 text-sm text-muted-foreground">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-destructive/70" />
+                    <span>{c.rejection_note}</span>
+                  </div>
+                )}
               </li>
             );
           })}

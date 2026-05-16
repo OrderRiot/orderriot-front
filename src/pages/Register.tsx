@@ -16,6 +16,7 @@ import {
 import { useLogin, useRegister } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { UserType } from "@/lib/types";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 
 const schema = z.object({
   username: z
@@ -168,6 +169,13 @@ export default function Register() {
         >
           {reg.isPending || login.isPending ? "Creating account…" : "Create account"}
         </Button>
+
+        <GoogleAuthButton
+          onSuccess={(isNewUser) => {
+            toast.success(isNewUser ? "Account created. Welcome to OrderRiot." : "Welcome back.");
+            navigate(isNewUser ? "/profile" : "/discover", { replace: true });
+          }}
+        />
 
         <div className="md:hidden text-center text-sm pt-4">
           Already here?{" "}

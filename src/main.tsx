@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
@@ -17,6 +18,18 @@ import MyContributions from "@/pages/MyContributions";
 import PublicProfile from "@/pages/PublicProfile";
 import About from "@/pages/About";
 import AdminDashboard from "@/pages/AdminDashboard";
+import MyOrganizations from "@/pages/MyOrganizations";
+import CreateOrganization from "@/pages/CreateOrganization";
+import OrganizationPage from "@/pages/OrganizationPage";
+import IdeaFeed from "@/pages/IdeaFeed";
+import IdeaDetail from "@/pages/IdeaDetail";
+import CreateIdea from "@/pages/CreateIdea";
+import MyIdeas from "@/pages/MyIdeas";
+import CollabBoard from "@/pages/CollabBoard";
+import CollabDetail from "@/pages/CollabDetail";
+import CreateCollab from "@/pages/CreateCollab";
+import Messages from "@/pages/Messages";
+import ConversationView from "@/pages/ConversationView";
 import NotFound from "@/pages/NotFound";
 
 import "./index.css";
@@ -92,6 +105,67 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: "/organizations/new",
+        element: (
+          <ProtectedRoute>
+            <CreateOrganization />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/organizations/:id", element: <OrganizationPage /> },
+      {
+        path: "/profile/organizations",
+        element: (
+          <ProtectedRoute>
+            <MyOrganizations />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/collabs", element: <CollabBoard /> },
+      {
+        path: "/collabs/new",
+        element: (
+          <ProtectedRoute>
+            <CreateCollab />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/collabs/:id", element: <CollabDetail /> },
+      { path: "/ideas", element: <IdeaFeed /> },
+      {
+        path: "/ideas/new",
+        element: (
+          <ProtectedRoute>
+            <CreateIdea />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/ideas/:id", element: <IdeaDetail /> },
+      {
+        path: "/profile/ideas",
+        element: (
+          <ProtectedRoute>
+            <MyIdeas />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/messages",
+        element: (
+          <ProtectedRoute>
+            <Messages />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/messages/:convId",
+        element: (
+          <ProtectedRoute>
+            <ConversationView />
+          </ProtectedRoute>
+        ),
+      },
       { path: "*", element: <NotFound /> },
     ],
   },
@@ -99,9 +173,11 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster />
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>,
 );

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, X, FileText, ShieldCheck, ShieldX } from "lucide-react";
+import { Check, X, FileText, ShieldCheck, ShieldX, Building2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,22 @@ import {
   useAdminVerifications,
   useApproveVerification,
   useRejectVerification,
+  useAdminOrganizations,
+  useVerifyOrganization,
+  useRejectOrganization,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
-import type { Campaign, CampaignStatus, VerificationWithUser, VerificationStatus } from "@/lib/types";
+import type {
+  AdminOrganization,
+  Campaign,
+  CampaignStatus,
+  OrgStatus,
+  VerificationWithUser,
+  VerificationStatus,
+} from "@/lib/types";
 
-type AdminSection = "verifications" | "campaigns";
+type AdminSection = "verifications" | "campaigns" | "organizations";
 
 const CAMPAIGN_FILTERS: { label: string; value: CampaignStatus | undefined }[] = [
   { label: "Pending review", value: "pending_review" },
@@ -47,24 +57,25 @@ export default function AdminDashboard() {
       </div>
 
       {/* Section toggle */}
-      <div className="flex gap-3 mb-10 border-b border-line pb-6">
-        {(["verifications", "campaigns"] as AdminSection[]).map((s) => (
+      <div className="flex gap-3 flex-wrap mb-10 border-b border-line pb-6">
+        {(["verifications", "campaigns", "organizations"] as AdminSection[]).map((s) => (
           <button
             key={s}
             onClick={() => setSection(s)}
-            className={`px-5 py-2 text-sm font-medium border transition-colors capitalize ${
+            className={`px-5 py-2 text-sm font-medium border transition-colors ${
               section === s
                 ? "border-ink bg-ink text-paper"
                 : "border-line text-muted-foreground hover:border-ink hover:text-ink"
             }`}
           >
-            {s === "verifications" ? "User Verifications" : "Campaign Reviews"}
+            {s === "verifications" ? "User Verifications" : s === "campaigns" ? "Campaign Reviews" : "Org Verifications"}
           </button>
         ))}
       </div>
 
       {section === "verifications" && <VerificationsSection />}
       {section === "campaigns" && <CampaignsSection />}
+      {section === "organizations" && <OrgsSection />}
     </div>
   );
 }
@@ -278,6 +289,8 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
   const approve = useApproveCampaign(c.camp_id);
   const reject = useRejectCampaign(c.camp_id);
   const [showDocs, setShowDocs] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
   const busy = approve.isPending || reject.isPending;
   const docs = c.documents ?? [];
 
@@ -292,8 +305,10 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
 
   async function handleReject() {
     try {
-      await reject.mutateAsync();
+      await reject.mutateAsync(rejectNote || undefined);
       toast.success(`"${c.title}" sent back to draft.`);
+      setShowReject(false);
+      setRejectNote("");
     } catch (err) {
       toast.error(apiError(err));
     }
@@ -340,13 +355,13 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
               {docs.length} doc{docs.length !== 1 ? "s" : ""}
             </Button>
           )}
-          {c.status === "pending_review" && (
+          {c.status === "pending_review" && !showReject && (
             <>
               <Button size="sm" onClick={handleApprove} disabled={busy} className="gap-1.5">
                 <Check className="h-3.5 w-3.5" />
                 Approve
               </Button>
-              <Button size="sm" variant="outline" onClick={handleReject} disabled={busy} className="gap-1.5">
+              <Button size="sm" variant="outline" onClick={() => setShowReject(true)} disabled={busy} className="gap-1.5">
                 <X className="h-3.5 w-3.5" />
                 Reject
               </Button>
@@ -354,6 +369,30 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
           )}
         </div>
       </div>
+
+      {/* Reject note panel */}
+      {showReject && (
+        <div className="mt-4 ml-[calc(1/12*100%+1rem)] pl-4 border-l-2 border-destructive/40">
+          <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+            Reason for rejection (optional)
+          </div>
+          <input
+            className="border border-line px-3 py-2 text-sm w-full max-w-sm bg-transparent"
+            placeholder="e.g. Missing legal entity details, unclear project scope…"
+            value={rejectNote}
+            onChange={(e) => setRejectNote(e.target.value)}
+          />
+          <div className="flex gap-2 mt-2">
+            <Button size="sm" variant="outline" onClick={handleReject} disabled={busy} className="gap-1.5">
+              <X className="h-3.5 w-3.5" />
+              Confirm reject
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowReject(false); setRejectNote(""); }}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Documents panel */}
       {showDocs && docs.length > 0 && (
@@ -381,5 +420,179 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
         </div>
       )}
     </li>
+  );
+}
+
+// ── Organization verifications ───────────────────────────────────
+
+const ORG_STATUS_FILTERS: { label: string; value: OrgStatus | undefined }[] = [
+  { label: "Pending", value: "pending" },
+  { label: "All", value: undefined },
+  { label: "Verified", value: "verified" },
+  { label: "Rejected", value: "rejected" },
+];
+
+const ORG_TYPE_LABELS: Record<string, string> = {
+  personal: "Personal", studio: "Studio", agency: "Agency",
+  brand: "Brand", ngo: "NGO", other: "Other",
+};
+
+function OrgsSection() {
+  const [filter, setFilter] = useState<OrgStatus | undefined>("pending");
+  const orgs = useAdminOrganizations(filter);
+
+  return (
+    <div>
+      <div className="flex gap-2 flex-wrap mb-8">
+        {ORG_STATUS_FILTERS.map((f) => (
+          <button
+            key={f.label}
+            onClick={() => setFilter(f.value)}
+            className={`px-3 py-1 text-xs border transition-colors ${
+              filter === f.value
+                ? "border-ink bg-ink text-paper"
+                : "border-line text-muted-foreground hover:border-ink hover:text-ink"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {orgs.isLoading && (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+        </div>
+      )}
+
+      {orgs.data?.length === 0 && (
+        <div className="border border-dashed border-line p-16 text-center">
+          <div className="italic-display text-2xl">Nothing here.</div>
+        </div>
+      )}
+
+      {orgs.data && orgs.data.length > 0 && (
+        <div className="space-y-4">
+          {orgs.data.map((o) => <OrgRow key={o.id} org={o} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrgRow({ org: o }: { org: AdminOrganization }) {
+  const verify = useVerifyOrganization(o.id);
+  const reject = useRejectOrganization(o.id);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
+  const busy = verify.isPending || reject.isPending;
+
+  async function handleVerify() {
+    try {
+      await verify.mutateAsync();
+      toast.success(`"${o.name}" verified.`);
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  async function handleReject() {
+    try {
+      await reject.mutateAsync(rejectNote || undefined);
+      toast.success(`"${o.name}" rejected.`);
+      setShowReject(false);
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  return (
+    <div className="border border-line p-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          {o.avatar_url ? (
+            <img src={o.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover" />
+          ) : (
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{o.name}</span>
+              <Link
+                to={`/organizations/${o.id}`}
+                className="text-muted-foreground hover:text-ink transition-colors"
+                target="_blank"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {ORG_TYPE_LABELS[o.org_type] ?? o.org_type} &middot; {o.entity_type.replace("_", " ")}
+            </div>
+            <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground mt-0.5">
+              <span>{o.members.length} member{o.members.length !== 1 ? "s" : ""}</span>
+              {o.license_number && <span>Lic: {o.license_number}</span>}
+              <span>Created {new Date(o.created_at).toLocaleDateString("en-IN")}</span>
+            </div>
+          </div>
+        </div>
+        <Badge variant={o.status === "pending" ? "default" : "outline"}>
+          {o.status}
+        </Badge>
+      </div>
+
+      {o.description && (
+        <p className="mt-3 text-sm text-muted-foreground line-clamp-2 max-w-xl">{o.description}</p>
+      )}
+
+      {o.identity_proof_url && (
+        <div className="mt-3">
+          <a
+            href={o.identity_proof_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-accent hover:underline"
+          >
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            Identity proof
+          </a>
+        </div>
+      )}
+
+      {o.status === "pending" && (
+        <div className="mt-4 flex flex-col gap-3">
+          {showReject ? (
+            <div className="flex flex-col gap-2">
+              <input
+                className="border border-line px-3 py-2 text-sm w-full max-w-sm bg-transparent"
+                placeholder="Rejection reason (optional)"
+                value={rejectNote}
+                onChange={(e) => setRejectNote(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={handleReject} disabled={busy} className="gap-1.5">
+                  <X className="h-3.5 w-3.5" />
+                  Confirm reject
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowReject(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleVerify} disabled={busy} className="gap-1.5">
+                <Check className="h-3.5 w-3.5" />
+                Verify
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowReject(true)} disabled={busy} className="gap-1.5">
+                <X className="h-3.5 w-3.5" />
+                Reject
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

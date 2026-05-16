@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLogin } from "@/lib/queries";
 import { apiError } from "@/lib/api";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 
 const schema = z.object({
   email: z.string().email("Enter a real email"),
@@ -22,6 +23,7 @@ export default function Login() {
   const location = useLocation() as { state?: { from?: string } };
   const login = useLogin();
   const [showPwd, setShowPwd] = useState(false);
+  const redirectTo = location.state?.from ?? "/discover";
 
   const {
     register,
@@ -33,7 +35,7 @@ export default function Login() {
     try {
       await login.mutateAsync(values);
       toast.success("Welcome back.");
-      navigate(location.state?.from ?? "/discover", { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       toast.error(apiError(err));
     }
@@ -122,6 +124,13 @@ export default function Login() {
           >
             {login.isPending ? "Signing in…" : "Sign in"}
           </Button>
+
+          <GoogleAuthButton
+            onSuccess={(isNewUser) => {
+              toast.success(isNewUser ? "Welcome to OrderRiot." : "Welcome back.");
+              navigate(isNewUser ? "/profile" : redirectTo, { replace: true });
+            }}
+          />
 
           <div className="md:hidden text-center text-sm pt-4">
             New here?{" "}

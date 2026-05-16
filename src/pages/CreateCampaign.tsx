@@ -953,6 +953,7 @@ function DocumentsStep({
           ref={inputRef}
           type="file"
           multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,image/*"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

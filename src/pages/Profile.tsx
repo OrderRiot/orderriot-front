@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Camera, ExternalLink, ShieldCheck, ShieldX, Upload } from "lucide-react";
+import { Camera, ExternalLink, Plus, Pencil, Trash2, ShieldCheck, ShieldX, Upload, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,20 @@ import {
 import {
   uploadAvatar,
   uploadIdProof,
+  uploadPortfolioMedia,
+  deletePortfolioMedia,
   useMe,
   useMyVerification,
   useUpdateMe,
+  useMyPortfolio,
+  useCreatePortfolioItem,
+  useUpdatePortfolioItem,
+  useDeletePortfolioItem,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { initials } from "@/lib/utils";
 import { UserType } from "@/lib/types";
+import type { UserPortfolioItem } from "@/lib/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 const schema = z.object({
@@ -162,6 +169,22 @@ export default function Profile() {
                 </dt>
                 <dd className="mt-1">{typeLabel[user.user_type] ?? "Member"}</dd>
               </div>
+              {user.has_google && (
+                <div>
+                  <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Connected with
+                  </dt>
+                  <dd className="mt-1 flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Google
+                  </dd>
+                </div>
+              )}
               <div className="col-span-2">
                 <VerificationSection />
               </div>
@@ -273,6 +296,326 @@ export default function Profile() {
             </Button>
           </div>
         </form>
+      </div>
+
+      {/* PORTFOLIO */}
+      <div className="col-span-12 border-t border-line pt-10">
+        <PortfolioSection />
+      </div>
+    </div>
+  );
+}
+
+// ── Portfolio management ─────────────────────────────────────────
+
+function PortfolioSection() {
+  const portfolio = useMyPortfolio();
+  const createItem = useCreatePortfolioItem();
+  const deleteItem = useDeletePortfolioItem();
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<UserPortfolioItem | null>(null);
+  const qc = useQueryClient();
+
+  async function handleDelete(itemId: number) {
+    try {
+      await deleteItem.mutateAsync(itemId);
+      toast.success("Item removed.");
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-end justify-between gap-4 mb-8">
+        <div>
+          <div className="editorial-index">— Showcase</div>
+          <h2 className="font-display text-3xl mt-2">Portfolio</h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md">
+            Showcase your work, projects, and skills. Visible publicly on your profile.
+          </p>
+        </div>
+        {!showForm && !editingItem && (
+          <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={() => setShowForm(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            Add item
+          </Button>
+        )}
+      </div>
+
+      {(showForm || editingItem) && (
+        <PortfolioItemForm
+          existing={editingItem ?? undefined}
+          onClose={() => { setShowForm(false); setEditingItem(null); }}
+          onSaved={(item) => {
+            qc.invalidateQueries({ queryKey: ["portfolio", "me"] });
+            if (!editingItem) {
+              // After creating, we can immediately open the newly created item for media upload
+              setShowForm(false);
+              setEditingItem(item);
+            } else {
+              setEditingItem(null);
+            }
+          }}
+        />
+      )}
+
+      {portfolio.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+
+      {!portfolio.isLoading && portfolio.data?.length === 0 && !showForm && (
+        <p className="text-sm text-muted-foreground italic">
+          No portfolio items yet. Add your first one above.
+        </p>
+      )}
+
+      {portfolio.data && portfolio.data.length > 0 && (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+          {portfolio.data.map((item) => (
+            <div key={item.id} className="border border-line flex flex-col">
+              {item.media_urls && item.media_urls.length > 0 && (
+                <div className="aspect-video bg-muted overflow-hidden">
+                  <img src={item.media_urls[0]} alt={item.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="p-4 flex flex-col gap-2 flex-1">
+                <div className="font-semibold text-sm">{item.title}</div>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                )}
+                {item.tags && item.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {item.tags.map((t, i) => (
+                      <span key={i} className="text-[10px] border border-line px-1.5 py-0.5 text-muted-foreground">{t}</span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-auto pt-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs gap-1"
+                    onClick={() => { setShowForm(false); setEditingItem(item); }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs gap-1 text-destructive hover:text-destructive"
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleteItem.isPending}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PortfolioItemForm({
+  existing,
+  onClose,
+  onSaved,
+}: {
+  existing?: UserPortfolioItem;
+  onClose: () => void;
+  onSaved: (item: UserPortfolioItem) => void;
+}) {
+  const createItem = useCreatePortfolioItem();
+  const updateItem = useUpdatePortfolioItem(existing?.id ?? 0);
+  const qc = useQueryClient();
+
+  const [title, setTitle] = useState(existing?.title ?? "");
+  const [description, setDescription] = useState(existing?.description ?? "");
+  const [link, setLink] = useState(existing?.link ?? "");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
+  const [uploading, setUploading] = useState(false);
+  const [mediaUrls, setMediaUrls] = useState<string[]>(existing?.media_urls ?? []);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function addTag() {
+    const t = tagInput.trim();
+    if (!t || tags.includes(t)) return;
+    setTags((prev) => [...prev, t]);
+    setTagInput("");
+  }
+
+  async function handleSave() {
+    if (!title.trim()) return;
+    try {
+      let item: UserPortfolioItem;
+      if (existing) {
+        item = await updateItem.mutateAsync({
+          title: title.trim(),
+          description: description || null,
+          link: link || null,
+          tags: tags.length ? tags : null,
+        });
+      } else {
+        item = await createItem.mutateAsync({
+          title: title.trim(),
+          description: description || null,
+          link: link || null,
+          tags: tags.length ? tags : null,
+        });
+      }
+      onSaved(item);
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  async function handleMediaUpload(files: FileList | null) {
+    if (!files || !existing) return;
+    setUploading(true);
+    try {
+      const all = await uploadPortfolioMedia(existing.id, Array.from(files));
+      setMediaUrls(all);
+      qc.invalidateQueries({ queryKey: ["portfolio", "me"] });
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleMediaDelete(url: string) {
+    if (!existing) return;
+    try {
+      await deletePortfolioMedia(existing.id, url);
+      setMediaUrls((prev) => prev.filter((u) => u !== url));
+      qc.invalidateQueries({ queryKey: ["portfolio", "me"] });
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  const isPending = createItem.isPending || updateItem.isPending;
+
+  return (
+    <div className="border border-line p-6 mb-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold">
+          {existing ? "Edit portfolio item" : "New portfolio item"}
+        </div>
+        <button onClick={onClose} className="text-muted-foreground hover:text-ink">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div>
+        <Label>Title <span className="text-destructive">*</span></Label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Brand identity for Sunrise Co."
+          className="mt-1"
+        />
+      </div>
+
+      <div>
+        <Label>Description</Label>
+        <textarea
+          className="mt-1 w-full border border-line px-3 py-2 text-sm bg-transparent focus:outline-none focus:border-ink resize-none h-24"
+          placeholder="What was this project? What did you do?"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label>Link</Label>
+        <Input
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="https://yourwork.com"
+          className="mt-1"
+        />
+      </div>
+
+      <div>
+        <Label>Tags</Label>
+        <div className="flex gap-2 mt-1">
+          <Input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
+            placeholder="e.g. Branding, Design…"
+            className="flex-1 max-w-xs"
+          />
+          <Button size="sm" variant="outline" onClick={addTag} disabled={!tagInput.trim()}>Add</Button>
+        </div>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {tags.map((t) => (
+              <span key={t} className="flex items-center gap-1 border border-ink bg-ink text-paper px-2 py-0.5 text-xs">
+                {t}
+                <button onClick={() => setTags((p) => p.filter((x) => x !== t))}>
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Media — only available after item is created */}
+      {existing && (
+        <div>
+          <Label>Media</Label>
+          <p className="text-xs text-muted-foreground mb-2">Up to 8 images. First one is the cover.</p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {mediaUrls.map((url) => (
+              <div key={url} className="relative group">
+                <img src={url} alt="" className="h-20 w-20 object-cover border border-line" />
+                <button
+                  className="absolute top-0.5 right-0.5 bg-paper/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => handleMediaDelete(url)}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {mediaUrls.length < 8 && (
+              <button
+                className="h-20 w-20 border border-dashed border-line flex items-center justify-center text-muted-foreground hover:border-ink hover:text-ink transition-colors"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? "…" : <Plus className="h-5 w-5" />}
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => handleMediaUpload(e.target.files)}
+          />
+        </div>
+      )}
+
+      {!existing && (
+        <p className="text-xs text-muted-foreground">
+          Save first, then you can add photos and media.
+        </p>
+      )}
+
+      <div className="flex gap-3 pt-2">
+        <Button onClick={handleSave} disabled={isPending || !title.trim()}>
+          {isPending ? "Saving…" : existing ? "Save changes" : "Create item"}
+        </Button>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
       </div>
     </div>
   );
