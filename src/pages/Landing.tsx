@@ -75,7 +75,7 @@ export default function Landing() {
         </div>
 
         {/* Stats */}
-        <div className="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-line rounded-2xl overflow-hidden border border-line">
+        {/* <div className="mt-16 md:mt-20 grid grid-cols-2 md:grid-cols-4 gap-px bg-line rounded-2xl overflow-hidden border border-line">
           {[
             { label: "Total pledged", value: "$284M" },
             { label: "Total backers", value: "1.4M" },
@@ -87,7 +87,7 @@ export default function Landing() {
               <div className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</div>
             </div>
           ))}
-        </div>
+        </div> */}
       </section>
 
       {/* CATEGORY MARQUEE */}
