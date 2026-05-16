@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Bell, MessageSquare, Menu, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { SearchModal } from "@/components/SearchModal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,6 +29,18 @@ export function Navbar() {
   const logout = useLogout();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const unread = useUnreadCount();
   const notifications = useNotifications();
   const markAllRead = useMarkAllRead();
@@ -75,12 +88,23 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate("/discover")}
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search (⌘K)"
+            className="hidden md:flex items-center gap-2 h-9 px-3 border border-line text-muted-foreground hover:text-ink hover:border-ink transition-colors text-xs"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search</span>
+            <kbd className="hidden lg:flex items-center gap-0.5 border border-line px-1 text-[10px] ml-1">⌘K</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
             aria-label="Search"
-            className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-ink hover:bg-muted transition-colors"
+            className="md:hidden h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-ink transition-colors"
           >
             <Search className="h-4 w-4" />
           </button>
+          <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
           {/* Messages icon */}
           {me.data && (

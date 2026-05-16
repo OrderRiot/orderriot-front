@@ -237,6 +237,23 @@ export interface CollabPostCreatePayload {
   campaign_id?: number | null;
 }
 
+// ── Search ───────────────────────────────────────────────────────
+
+export interface SearchResult {
+  campaigns: { id: number; title: string; subtitle: string | null; category: string | null }[];
+  ideas: { id: number; title: string; category: string | null }[];
+  collabs: { id: number; title: string; post_type: string }[];
+  organizations: { id: number; name: string; org_type: string; avatar_url: string | null }[];
+  users: { id: number; username: string; avatar_url: string | null; isverified: boolean }[];
+}
+
+export interface AdminSearchResult {
+  campaigns: { id: number; title: string; status: CampaignStatus; goal_amount: number }[];
+  users: { id: number; username: string; email: string; isverified: boolean; user_type: number }[];
+  organizations: { id: number; name: string; status: string; org_type: string }[];
+  pending_verifications: { id: number; user_id: number; username: string; email: string }[];
+}
+
 export type CollabPostUpdatePayload = Partial<Omit<CollabPostCreatePayload, "idea_id" | "campaign_id">>;
 
 export interface CollabResponseCreatePayload {

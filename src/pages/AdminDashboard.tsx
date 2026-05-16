@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Check, X, FileText, ShieldCheck, ShieldX, Building2, ExternalLink } from "lucide-react";
+import { Check, X, FileText, ShieldCheck, ShieldX, Building2, ExternalLink, Zap } from "lucide-react";
+import { AdminCommandBar } from "@/components/AdminCommandBar";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,14 +47,42 @@ const VERIFICATION_FILTERS: { label: string; value: VerificationStatus | undefin
 
 export default function AdminDashboard() {
   const [section, setSection] = useState<AdminSection>("verifications");
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "g") {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <div className="container-edge py-16 md:py-20">
+      <AdminCommandBar
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        onNavigate={(s) => setSection(s)}
+      />
+
       <div className="mb-12">
         <div className="editorial-index">— Admin</div>
-        <h1 className="font-display text-display-md mt-3 leading-[1.02]">
-          Trust &amp; <span className="italic-display">review.</span>
-        </h1>
+        <div className="flex items-end justify-between gap-4 mt-3">
+          <h1 className="font-display text-display-md leading-[1.02]">
+            Trust &amp; <span className="italic-display">review.</span>
+          </h1>
+          <button
+            onClick={() => setCmdOpen(true)}
+            className="hidden md:flex items-center gap-2 border border-line px-4 py-2 text-sm text-muted-foreground hover:text-ink hover:border-ink transition-colors shrink-0 mb-1"
+          >
+            <Zap className="h-3.5 w-3.5 text-accent" />
+            God Mode
+            <kbd className="text-[10px] border border-line px-1.5 py-0.5 ml-1">⌘G</kbd>
+          </button>
+        </div>
       </div>
 
       {/* Section toggle */}

@@ -37,6 +37,8 @@ import type {
   OrgMember,
   OrgMemberAddPayload,
   OrgPortfolioItem,
+  SearchResult,
+  AdminSearchResult,
   OrgPortfolioItemCreatePayload,
   OrgStatus,
   OrgUpdatePayload,
@@ -930,4 +932,35 @@ export async function uploadPortfolioMedia(itemId: number, files: File[]): Promi
 
 export async function deletePortfolioMedia(itemId: number, fileUrl: string): Promise<void> {
   await api.delete(`/uploads/portfolio/${itemId}/media`, { params: { file_url: fileUrl } });
+}
+
+// ── Search ───────────────────────────────────────────────────────
+
+export function useSearch(q: string) {
+  return useQuery<SearchResult>({
+    queryKey: ["search", q],
+    queryFn: async () => (await api.get("/search", { params: { q } })).data,
+    enabled: q.trim().length >= 2,
+    staleTime: 15_000,
+  });
+}
+
+export function useAdminSearch(q: string) {
+  return useQuery<AdminSearchResult>({
+    queryKey: ["admin-search", q],
+    queryFn: async () => (await api.get("/admin/search", { params: { q } })).data,
+    enabled: q.trim().length >= 2,
+    staleTime: 5_000,
+  });
+}
+
+export function useSetUserType() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, userType }: { userId: number; userType: number }) =>
+      (await api.patch(`/admin/users/${userId}/type`, { user_type: userType })).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-search"] });
+    },
+  });
 }
