@@ -69,7 +69,7 @@ export default function Landing() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link to="/create">Start a campaign</Link>
+              <Link to="/ideas/new">Share an idea</Link>
             </Button>
           </div>
         </div>
