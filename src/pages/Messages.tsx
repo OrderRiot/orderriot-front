@@ -12,6 +12,13 @@ export default function Messages() {
   const navigate = useNavigate();
   const activeId = convId ? Number(convId) : null;
 
+  // Lock page scroll so footer doesn't show below the fixed-height layout
+  useEffect(() => {
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => { document.documentElement.style.overflow = prev; };
+  }, []);
+
   // On desktop, auto-select first conv if none active
   useEffect(() => {
     if (!convId && convs && convs.length > 0 && window.innerWidth >= 768) {
