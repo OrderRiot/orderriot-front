@@ -90,7 +90,7 @@ export default function CreateCollab() {
     try {
       const post = await createCollab.mutateAsync(payload);
       toast.success("Collaboration posted.");
-      navigate(`/collabs/${post.id}`);
+      navigate(`/collabs/${post.slug ?? post.id}`);
     } catch (err) {
       toast.error(apiError(err));
     }
@@ -100,7 +100,7 @@ export default function CreateCollab() {
   const activeCampaigns = myCampaigns.data ?? [];
 
   return (
-    <div className="container-edge py-16 md:py-20 max-w-2xl">
+    <div className="container-edge py-16 md:py-20 max-w-4xl">
       <div className="mb-10">
         <div className="editorial-index">— New collaboration</div>
         <h1 className="font-display text-display-md mt-3 leading-[1.02]">

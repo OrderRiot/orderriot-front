@@ -59,7 +59,7 @@ export default function MyCampaigns() {
             const isRejected = c.status === "draft" && !!c.rejection_note;
             const target = c.status === "draft"
               ? `/create/${c.camp_id}`
-              : `/campaigns/${c.camp_id}`;
+              : `/campaigns/${c.slug ?? c.camp_id}`;
             const percent = pct(c.current_amount, c.goal_amount);
             return (
               <li key={c.camp_id} className="border-b border-line last:border-b-0">

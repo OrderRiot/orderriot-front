@@ -44,9 +44,8 @@ const ORG_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function OrganizationPage() {
-  const { id } = useParams<{ id: string }>();
-  const orgId = Number(id);
-  const org = useOrganization(orgId);
+  const { slug } = useParams<{ slug: string }>();
+  const org = useOrganization(slug ?? "");
   const me = useMe();
   const qc = useQueryClient();
 
@@ -73,11 +72,11 @@ export default function OrganizationPage() {
   const o = org.data;
 
   return (
-    <div className="container-edge py-16 md:py-20">
+    <div className="container-edge py-16 md:py-20 max-w-5xl">
       {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-6 mb-12">
         <div className="flex items-center gap-5">
-          <OrgAvatar orgId={orgId} avatarUrl={o.avatar_url} name={o.name} isOwner={isOwner} />
+          <OrgAvatar orgId={o.id} avatarUrl={o.avatar_url} ownerAvatarUrl={o.owner_avatar_url} name={o.name} isOwner={isOwner} />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-display text-3xl md:text-4xl font-semibold">{o.name}</h1>
@@ -111,7 +110,7 @@ export default function OrganizationPage() {
         </div>
 
         {isOwner && (
-          <IdentityProofUpload orgId={orgId} hasProof={false} />
+          <IdentityProofUpload orgId={o.id} hasProof={false} />
         )}
       </div>
 
@@ -130,7 +129,7 @@ export default function OrganizationPage() {
       <section className="mb-14">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-xl font-semibold">Team</h2>
-          {isOwner && <AddMemberForm orgId={orgId} />}
+          {isOwner && <AddMemberForm orgId={o.id} />}
         </div>
 
         <div className="border border-line divide-y divide-line">
@@ -153,7 +152,7 @@ export default function OrganizationPage() {
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-muted-foreground">{ROLE_LABELS[m.role]}</span>
                 {isOwner && m.role !== "owner" && (
-                  <RemoveMemberButton orgId={orgId} memberId={m.id} />
+                  <RemoveMemberButton orgId={o.id} memberId={m.id} />
                 )}
               </div>
             </div>
@@ -165,7 +164,7 @@ export default function OrganizationPage() {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-xl font-semibold">Portfolio</h2>
-          {isOwner && <AddPortfolioForm orgId={orgId} />}
+          {isOwner && <AddPortfolioForm orgId={o.id} />}
         </div>
 
         {o.portfolio.length === 0 ? (
@@ -175,7 +174,7 @@ export default function OrganizationPage() {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {o.portfolio.map((item) => (
-              <PortfolioCard key={item.id} orgId={orgId} itemId={item.id} isOwner={isOwner}
+              <PortfolioCard key={item.id} orgId={o.id} itemId={item.id} isOwner={isOwner}
                 title={item.title} description={item.description}
                 link={item.link} tags={item.tags}
               />
@@ -190,8 +189,8 @@ export default function OrganizationPage() {
 // ── Sub-components ───────────────────────────────────────────────
 
 function OrgAvatar({
-  orgId, avatarUrl, name, isOwner,
-}: { orgId: number; avatarUrl: string | null; name: string; isOwner: boolean }) {
+  orgId, avatarUrl, ownerAvatarUrl, name, isOwner,
+}: { orgId: number; avatarUrl: string | null; ownerAvatarUrl: string | null; name: string; isOwner: boolean }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -211,10 +210,12 @@ function OrgAvatar({
     }
   }
 
+  const displayAvatar = avatarUrl ?? ownerAvatarUrl;
+
   return (
     <div className="relative shrink-0">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
+      {displayAvatar ? (
+        <img src={displayAvatar} alt="" className="h-20 w-20 rounded-full object-cover" />
       ) : (
         <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
           <Building2 className="h-8 w-8 text-muted-foreground" />

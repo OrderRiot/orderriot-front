@@ -68,7 +68,7 @@ export function CampaignCard({
   if (variant === "wide") {
     return (
       <Link
-        to={`/campaigns/${campaign.camp_id}`}
+        to={`/campaigns/${campaign.slug ?? campaign.camp_id}`}
         className="group grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 py-10 border-t border-line"
       >
         {typeof index === "number" && (
@@ -138,7 +138,7 @@ export function CampaignCard({
   if (variant === "compact") {
     return (
       <Link
-        to={`/campaigns/${campaign.camp_id}`}
+        to={`/campaigns/${campaign.slug ?? campaign.camp_id}`}
         className="group flex items-start gap-3 py-3 border-t border-line"
       >
         <div className="h-14 w-14 shrink-0 bg-muted overflow-hidden rounded-lg">
@@ -161,7 +161,7 @@ export function CampaignCard({
 
   return (
     <Link
-      to={`/campaigns/${campaign.camp_id}`}
+      to={`/campaigns/${campaign.slug ?? campaign.camp_id}`}
       className="group flex flex-col"
     >
       <div className="aspect-[4/3] overflow-hidden bg-muted rounded-xl">

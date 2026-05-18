@@ -4,7 +4,7 @@ import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   useComments,
   useMe,
@@ -100,18 +100,19 @@ function CommentRow({ campId, comment }: { campId: number; comment: Comment }) {
     <li className="py-6 grid grid-cols-12 gap-x-4">
       <div className="col-span-1">
         <Avatar className="h-9 w-9">
+          <AvatarImage src={comment.avatar_url ?? undefined} />
           <AvatarFallback>
-            {initials(comment.user_id ? `U${comment.user_id}` : "·")}
+            {initials(comment.username || (comment.user_id ? `U${comment.user_id}` : "·"))}
           </AvatarFallback>
         </Avatar>
       </div>
       <div className="col-span-11">
         <div className="flex items-baseline gap-3">
           <Link
-            to={comment.user_id ? `/users/${comment.user_id}` : "#"}
+            to={comment.username ? `/users/${comment.username}` : "#"}
             className="text-sm font-medium link-quiet"
           >
-            {comment.user_id ? `User #${comment.user_id}` : "Anonymous"}
+            {comment.username ?? "Anonymous"}
           </Link>
           <span className="text-xs text-muted-foreground tnum">
             {timeAgo(comment.posted_date)}

@@ -22,7 +22,7 @@ const statusLabel: Record<IdeaStatus, string> = {
 function IdeaRow({ idea }: { idea: IdeaListItem }) {
   return (
     <Link
-      to={`/ideas/${idea.id}`}
+      to={`/ideas/${idea.slug ?? idea.id}`}
       className="flex items-start justify-between gap-4 py-5 group border-b border-line last:border-0"
     >
       <div className="min-w-0">
@@ -43,7 +43,7 @@ function IdeaRow({ idea }: { idea: IdeaListItem }) {
         </div>
         {idea.status === "converted" && idea.campaign_id && (
           <Link
-            to={`/campaigns/${idea.campaign_id}`}
+            to={`/campaigns/${idea.campaign_slug ?? idea.campaign_id}`}
             className="text-xs text-accent hover:underline mt-1 inline-block"
             onClick={(e) => e.stopPropagation()}
           >

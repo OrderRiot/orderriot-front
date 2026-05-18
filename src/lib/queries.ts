@@ -55,10 +55,10 @@ import type {
 
 export const qk = {
   me: ["me"] as const,
-  user: (id: number) => ["user", id] as const,
+  user: (username: string) => ["user", username] as const,
   campaigns: (params?: CampaignFilters) => ["campaigns", params] as const,
   myCampaigns: ["campaigns", "mine"] as const,
-  campaign: (id: number) => ["campaign", id] as const,
+  campaign: (slug: string | number) => ["campaign", slug] as const,
   rewards: (id: number) => ["campaign", id, "rewards"] as const,
   comments: (id: number) => ["campaign", id, "comments"] as const,
   reactionCounts: (campId: number, commentId: number) =>
@@ -67,23 +67,24 @@ export const qk = {
   myVerification: ["verification", "me"] as const,
   adminVerifications: (status?: VerificationStatus) => ["admin", "verifications", status ?? "pending"] as const,
   myOrganizations: ["organizations", "mine"] as const,
-  organization: (id: number) => ["organization", id] as const,
+  organization: (slug: string | number) => ["organization", slug] as const,
   adminOrganizations: (status?: OrgStatus) => ["admin", "organizations", status ?? "pending"] as const,
   ideas: (params?: { category?: string }) => ["ideas", params] as const,
   myIdeas: ["ideas", "mine"] as const,
-  idea: (id: number) => ["idea", id] as const,
+  idea: (slug: string | number) => ["idea", slug] as const,
   notifications: ["notifications"] as const,
   notifUnread: ["notifications", "unread"] as const,
   collabs: (params?: { skill?: string }) => ["collabs", params] as const,
   myCollabs: ["collabs", "mine"] as const,
-  collab: (id: number) => ["collab", id] as const,
+  collab: (slug: string | number) => ["collab", slug] as const,
   collabResponses: (id: number) => ["collab", id, "responses"] as const,
   conversations: ["conversations"] as const,
   conversation: (id: number) => ["conversation", id] as const,
   messages: (convId: number) => ["conversation", convId, "messages"] as const,
   msgUnread: ["messages", "unread"] as const,
   myPortfolio: ["portfolio", "me"] as const,
-  userPortfolio: (userId: number) => ["portfolio", "user", userId] as const,
+  userPortfolio: (username: string) => ["portfolio", "user", username] as const,
+  campaignPosts: (id: number) => ["campaign", id, "posts"] as const,
 };
 
 // ── Auth ─────────────────────────────────────────────────────────
@@ -155,10 +156,11 @@ export function useMe(enabled = true) {
   });
 }
 
-export function useUser(userId: number) {
+export function useUser(username: string) {
   return useQuery({
-    queryKey: qk.user(userId),
-    queryFn: async () => (await api.get<User>(`/users/${userId}`)).data,
+    queryKey: qk.user(username),
+    enabled: !!username,
+    queryFn: async () => (await api.get<User>(`/users/${username}`)).data,
   });
 }
 
@@ -201,11 +203,11 @@ export function useMyCampaigns() {
   });
 }
 
-export function useCampaign(id: number) {
+export function useCampaign(slug: string) {
   return useQuery({
-    queryKey: qk.campaign(id),
-    queryFn: async () => (await api.get<Campaign>(`/campaigns/${id}`)).data,
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: qk.campaign(slug),
+    queryFn: async () => (await api.get<Campaign>(`/campaigns/${slug}`)).data,
+    enabled: !!slug,
   });
 }
 
@@ -226,7 +228,7 @@ export function useUpdateCampaign(id: number) {
     mutationFn: async (payload: CampaignUpdatePayload) =>
       (await api.patch<Campaign>(`/campaigns/${id}`, payload)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: qk.myCampaigns });
     },
   });
@@ -237,7 +239,7 @@ export function useLaunchCampaign(id: number) {
   return useMutation({
     mutationFn: async () => (await api.post<Campaign>(`/campaigns/${id}/launch`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });
@@ -248,7 +250,7 @@ export function useSubmitCampaign(id: number) {
   return useMutation({
     mutationFn: async () => (await api.post<Campaign>(`/campaigns/${id}/submit`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: qk.myCampaigns });
     },
   });
@@ -274,7 +276,7 @@ export function useApproveCampaign(id: number) {
       (await api.post<Campaign>(`/admin/campaigns/${id}/approve`)).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
     },
   });
 }
@@ -286,7 +288,7 @@ export function useRejectCampaign(id: number) {
       (await api.post<Campaign>(`/admin/campaigns/${id}/reject`, { note: note ?? null })).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "campaigns"] });
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
     },
   });
 }
@@ -296,7 +298,7 @@ export function useCancelCampaign(id: number) {
   return useMutation({
     mutationFn: async () => (await api.post<Campaign>(`/campaigns/${id}/cancel`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.campaign(id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });
@@ -329,7 +331,7 @@ export function useBackCampaign() {
     mutationFn: async (payload: ContributionCreatePayload) =>
       (await api.post<Contribution>("/contributions/", payload)).data,
     onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: qk.campaign(vars.camp_id) });
+      qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: qk.rewards(vars.camp_id) });
       qc.invalidateQueries({ queryKey: qk.myContributions });
     },
@@ -478,11 +480,11 @@ export function useMyOrganizations() {
   });
 }
 
-export function useOrganization(id: number) {
+export function useOrganization(slug: string) {
   return useQuery({
-    queryKey: qk.organization(id),
-    queryFn: async () => (await api.get<Organization>(`/organizations/${id}`)).data,
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: qk.organization(slug),
+    queryFn: async () => (await api.get<Organization>(`/organizations/${slug}`)).data,
+    enabled: !!slug,
   });
 }
 
@@ -501,7 +503,7 @@ export function useUpdateOrganization(id: number) {
     mutationFn: async (payload: OrgUpdatePayload) =>
       (await api.patch<Organization>(`/organizations/${id}`, payload)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.organization(id) });
+      qc.invalidateQueries({ queryKey: ["organization"] });
       qc.invalidateQueries({ queryKey: qk.myOrganizations });
     },
   });
@@ -512,7 +514,7 @@ export function useAddOrgMember(orgId: number) {
   return useMutation({
     mutationFn: async (payload: OrgMemberAddPayload) =>
       (await api.post<OrgMember>(`/organizations/${orgId}/members`, payload)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.organization(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
   });
 }
 
@@ -521,7 +523,7 @@ export function useRemoveOrgMember(orgId: number) {
   return useMutation({
     mutationFn: async (memberId: number) =>
       api.delete(`/organizations/${orgId}/members/${memberId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.organization(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
   });
 }
 
@@ -530,7 +532,7 @@ export function useAddPortfolioItem(orgId: number) {
   return useMutation({
     mutationFn: async (payload: OrgPortfolioItemCreatePayload) =>
       (await api.post<OrgPortfolioItem>(`/organizations/${orgId}/portfolio`, payload)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.organization(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
   });
 }
 
@@ -539,7 +541,7 @@ export function useDeleteOrgPortfolioItem(orgId: number) {
   return useMutation({
     mutationFn: async (itemId: number) =>
       api.delete(`/organizations/${orgId}/portfolio/${itemId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.organization(orgId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
   });
 }
 
@@ -601,6 +603,21 @@ export async function deleteIdeaMedia(ideaId: number, fileUrl: string): Promise<
   await api.delete(`/uploads/idea/${ideaId}/media`, { params: { file_url: fileUrl } });
 }
 
+export async function uploadStoryImage(ideaId: number, file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("files", file);
+  const res = await api.post<{ uploaded: string[]; all_media: string[] }>(
+    `/uploads/idea/${ideaId}/media`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data.uploaded[0];
+}
+
+export async function reorderIdeaMedia(ideaId: number, urls: string[]): Promise<void> {
+  await api.patch(`/ideas/${ideaId}`, { media_urls: urls });
+}
+
 export function useRejectOrganization(id: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -628,11 +645,11 @@ export function useMyIdeas() {
   });
 }
 
-export function useIdea(id: number) {
+export function useIdea(slug: string) {
   return useQuery({
-    queryKey: qk.idea(id),
-    queryFn: async () => (await api.get<Idea>(`/ideas/${id}`)).data,
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: qk.idea(slug),
+    queryFn: async () => (await api.get<Idea>(`/ideas/${slug}`)).data,
+    enabled: !!slug,
   });
 }
 
@@ -651,7 +668,7 @@ export function useUpdateIdea(id: number) {
     mutationFn: async (payload: IdeaUpdatePayload) =>
       (await api.patch<Idea>(`/ideas/${id}`, payload)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.idea(id) });
+      qc.invalidateQueries({ queryKey: ["idea"] });
       qc.invalidateQueries({ queryKey: qk.myIdeas });
     },
   });
@@ -662,7 +679,7 @@ export function usePublishIdea(id: number) {
   return useMutation({
     mutationFn: async () => (await api.post<Idea>(`/ideas/${id}/publish`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.idea(id) });
+      qc.invalidateQueries({ queryKey: ["idea"] });
       qc.invalidateQueries({ queryKey: qk.myIdeas });
       qc.invalidateQueries({ queryKey: ["ideas"] });
     },
@@ -683,7 +700,7 @@ export function useToggleInterest(id: number) {
     mutationFn: async () =>
       (await api.post<{ interested: boolean }>(`/ideas/${id}/interest`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.idea(id) });
+      qc.invalidateQueries({ queryKey: ["idea"] });
       qc.invalidateQueries({ queryKey: ["ideas"] });
     },
   });
@@ -693,9 +710,9 @@ export function useConvertIdea(id: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () =>
-      (await api.post<{ campaign_id: number }>(`/ideas/${id}/convert`)).data,
+      (await api.post<{ campaign_id: number; campaign_slug: string | null }>(`/ideas/${id}/convert`)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.idea(id) });
+      qc.invalidateQueries({ queryKey: ["idea"] });
       qc.invalidateQueries({ queryKey: qk.myIdeas });
     },
   });
@@ -751,11 +768,11 @@ export function useMyCollabs() {
   });
 }
 
-export function useCollab(id: number) {
+export function useCollab(slug: string) {
   return useQuery({
-    queryKey: qk.collab(id),
-    queryFn: async () => (await api.get<CollabPost>(`/collabs/${id}`)).data,
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: qk.collab(slug),
+    queryFn: async () => (await api.get<CollabPost>(`/collabs/${slug}`)).data,
+    enabled: !!slug,
   });
 }
 
@@ -777,7 +794,7 @@ export function useUpdateCollab(id: number) {
     mutationFn: async (payload: CollabPostUpdatePayload) =>
       (await api.patch<CollabPost>(`/collabs/${id}`, payload)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.collab(id) });
+      qc.invalidateQueries({ queryKey: ["collab"] });
       qc.invalidateQueries({ queryKey: qk.myCollabs });
     },
   });
@@ -790,7 +807,7 @@ export function useCloseCollab(id: number) {
       await api.post(`/collabs/${id}/close`, null, { params: { filled } });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.collab(id) });
+      qc.invalidateQueries({ queryKey: ["collab"] });
       qc.invalidateQueries({ queryKey: qk.myCollabs });
       qc.invalidateQueries({ queryKey: ["collabs"] });
     },
@@ -802,7 +819,7 @@ export function useRespondToCollab(id: number) {
   return useMutation({
     mutationFn: async (payload: CollabResponseCreatePayload) =>
       (await api.post<CollabResponseInfo>(`/collabs/${id}/respond`, payload)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.collab(id) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["collab"] }),
   });
 }
 
@@ -885,11 +902,11 @@ export function useMyPortfolio() {
   });
 }
 
-export function useUserPortfolio(userId: number) {
+export function useUserPortfolio(username: string) {
   return useQuery({
-    queryKey: qk.userPortfolio(userId),
-    queryFn: async () => (await api.get<UserPortfolioItem[]>(`/users/${userId}/portfolio`)).data,
-    enabled: Number.isFinite(userId) && userId > 0,
+    queryKey: qk.userPortfolio(username),
+    queryFn: async () => (await api.get<UserPortfolioItem[]>(`/users/${username}/portfolio`)).data,
+    enabled: !!username,
   });
 }
 
@@ -961,6 +978,75 @@ export function useSetUserType() {
       (await api.patch(`/admin/users/${userId}/type`, { user_type: userType })).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-search"] });
+    },
+  });
+}
+
+// ── Password reset ────────────────────────────────────────────────
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (email: string) =>
+      api.post("/auth/forgot-password", { email }),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async ({ token, new_password }: { token: string; new_password: string }) =>
+      api.post("/auth/reset-password", { token, new_password }),
+  });
+}
+
+// ── Campaign posts ────────────────────────────────────────────────
+
+export interface CampaignPostItem {
+  id: number;
+  campaign_id: number;
+  owner_id: number;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+export function useCampaignPosts(campId: number) {
+  return useQuery<CampaignPostItem[]>({
+    queryKey: qk.campaignPosts(campId),
+    queryFn: async () => (await api.get(`/campaigns/${campId}/posts`)).data,
+  });
+}
+
+export function useCreateCampaignPost(campId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { title: string; body: string }) =>
+      (await api.post(`/campaigns/${campId}/posts`, payload)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.campaignPosts(campId) });
+    },
+  });
+}
+
+// ── Collab response accept/reject ─────────────────────────────────
+
+export function useAcceptCollabResponse(postId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (responseId: number) =>
+      api.post(`/collabs/${postId}/responses/${responseId}/accept`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.collabResponses(postId) });
+    },
+  });
+}
+
+export function useRejectCollabResponse(postId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (responseId: number) =>
+      api.post(`/collabs/${postId}/responses/${responseId}/reject`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.collabResponses(postId) });
     },
   });
 }

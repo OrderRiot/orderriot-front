@@ -22,6 +22,10 @@ export interface User {
   isverified: boolean;
   has_google: boolean;
   created_at: string;
+  name: string | null;
+  bio: string | null;
+  website: string | null;
+  social_links: Record<string, string> | null;
 }
 
 export interface AuthTokens {
@@ -39,7 +43,10 @@ export type CampaignStatus = "draft" | "pending_review" | "active" | "funded" | 
 
 export interface CampaignListItem {
   camp_id: number;
+  slug: string | null;
   owner_id: number;
+  owner_username: string | null;
+  owner_avatar_url: string | null;
   title: string;
   subtitle: string | null;
   category: string | null;
@@ -87,29 +94,46 @@ export type IdeaStatus = "draft" | "published" | "converted";
 
 export interface IdeaListItem {
   id: number;
+  slug: string | null;
   owner_id: number;
   title: string;
+  subtitle: string | null;
   description: string | null;
   category: string | null;
+  tags: string[] | null;
   rough_goal: number | null;
   media_urls: string[] | null;
   status: IdeaStatus;
   campaign_id: number | null;
+  campaign_slug: string | null;
   interest_count: number;
   created_at: string;
 }
 
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
 export interface Idea extends IdeaListItem {
   target_audience: string | null;
+  story: string | null;
+  risks: string | null;
+  faqs: FaqItem[] | null;
   user_interested: boolean;
 }
 
 export interface IdeaCreatePayload {
   title: string;
+  subtitle?: string | null;
   description?: string | null;
+  story?: string | null;
   category?: string | null;
   target_audience?: string | null;
   rough_goal?: number | null;
+  risks?: string | null;
+  faqs?: FaqItem[] | null;
+  tags?: string[] | null;
 }
 
 export type IdeaUpdatePayload = Partial<IdeaCreatePayload>;
@@ -195,6 +219,7 @@ export interface CollabOrgInfo {
 
 export interface CollabPost {
   id: number;
+  slug: string | null;
   owner_id: number;
   owner: CollabOwnerInfo;
   org_id: number | null;
@@ -202,7 +227,9 @@ export interface CollabPost {
   idea_id: number | null;
   campaign_id: number | null;
   idea_title: string | null;
+  idea_slug: string | null;
   campaign_title: string | null;
+  campaign_slug: string | null;
   post_type: CollabPostType;
   title: string;
   description: string | null;
@@ -222,6 +249,7 @@ export interface CollabResponseInfo {
   avatar_url: string | null;
   message: string;
   portfolio_link: string | null;
+  status: "pending" | "accepted" | "rejected";
   created_at: string;
 }
 
@@ -248,9 +276,9 @@ export interface SearchResult {
 }
 
 export interface AdminSearchResult {
-  campaigns: { id: number; title: string; status: CampaignStatus; goal_amount: number }[];
+  campaigns: { id: number; slug: string | null; title: string; status: CampaignStatus; goal_amount: number }[];
   users: { id: number; username: string; email: string; isverified: boolean; user_type: number }[];
-  organizations: { id: number; name: string; status: string; org_type: string }[];
+  organizations: { id: number; slug: string | null; name: string; status: string; org_type: string }[];
   pending_verifications: { id: number; user_id: number; username: string; email: string }[];
 }
 
@@ -293,7 +321,10 @@ export interface OrgPortfolioItem {
 
 export interface Organization {
   id: number;
+  slug: string | null;
   owner_id: number;
+  owner_username: string;
+  owner_avatar_url: string | null;
   name: string;
   description: string | null;
   avatar_url: string | null;
@@ -315,7 +346,10 @@ export interface AdminOrganization extends Organization {
 
 export interface OrgListItem {
   id: number;
+  slug: string | null;
   owner_id: number;
+  owner_username: string;
+  owner_avatar_url: string | null;
   name: string;
   description: string | null;
   avatar_url: string | null;
@@ -370,6 +404,7 @@ export interface Contribution {
   contrib_id: number;
   user_id: number;
   camp_id: number;
+  camp_slug: string | null;
   reward_id: number | null;
   contrib_amount: number;
   contrib_date: string;
@@ -385,6 +420,8 @@ export interface Comment {
   parent_comment_id: number | null;
   comment_body: string;
   posted_date: string;
+  username: string | null;
+  avatar_url: string | null;
 }
 
 export interface ReactionCounts {

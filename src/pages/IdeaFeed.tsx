@@ -14,17 +14,26 @@ const CATEGORIES = [
 function IdeaCard({ idea }: { idea: IdeaListItem }) {
   return (
     <Link
-      to={`/ideas/${idea.id}`}
+      to={`/ideas/${idea.slug ?? idea.id}`}
       className="border border-line p-6 flex flex-col gap-3 hover:bg-muted/30 transition-colors group"
     >
       <div>
         <div className="font-display text-lg font-semibold group-hover:underline underline-offset-4 leading-snug">
           {idea.title}
         </div>
-        {idea.description && (
+        {(idea.subtitle || idea.description) && (
           <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
-            {idea.description}
+            {idea.subtitle || idea.description}
           </p>
+        )}
+        {idea.tags && idea.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {idea.tags.slice(0, 3).map((tag: string) => (
+              <span key={tag} className="text-[10px] text-muted-foreground border border-line/60 px-1.5 py-0.5">
+                #{tag}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 

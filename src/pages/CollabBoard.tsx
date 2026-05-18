@@ -30,7 +30,7 @@ function CollabCard({ post }: { post: CollabPost }) {
 
   return (
     <Link
-      to={`/collabs/${post.id}`}
+      to={`/collabs/${post.slug ?? post.id}`}
       className={`border p-6 flex flex-col gap-4 hover:bg-muted/30 transition-colors group ${
         isOffer ? "border-ink/20 bg-muted/10" : "border-line"
       }`}

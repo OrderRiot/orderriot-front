@@ -94,13 +94,21 @@ export default function Login() {
           <div>
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-ink"
-              >
-                {showPwd ? "Hide" : "Show"}
-              </button>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/forgot-password"
+                  className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-ink"
+                >
+                  Forgot?
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-ink"
+                >
+                  {showPwd ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
             <Input
               id="password"

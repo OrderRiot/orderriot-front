@@ -257,7 +257,7 @@ export function AdminCommandBar({ open, onClose, onNavigate }: Props) {
                             <ActionBtn icon={<X className="h-3 w-3" />} label="Reject" onClick={() => rejectCampaignToDraft(c.id, c.title)} variant="reject" />
                           </>
                         )}
-                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="View" onClick={() => { navigate(`/campaigns/${c.id}`); onClose(); }} variant="nav" />
+                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="View" onClick={() => { navigate(`/campaigns/${c.slug ?? c.id}`); onClose(); }} variant="nav" />
                       </div>
                     </div>
                   ))}
@@ -282,7 +282,7 @@ export function AdminCommandBar({ open, onClose, onNavigate }: Props) {
                             <ActionBtn icon={<X className="h-3 w-3" />} label="Reject" onClick={() => rejectOrg(o.id, o.name)} variant="reject" />
                           </>
                         )}
-                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="View" onClick={() => { navigate(`/organizations/${o.id}`); onClose(); }} variant="nav" />
+                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="View" onClick={() => { navigate(`/organizations/${o.slug ?? o.id}`); onClose(); }} variant="nav" />
                       </div>
                     </div>
                   ))}
@@ -310,7 +310,7 @@ export function AdminCommandBar({ open, onClose, onNavigate }: Props) {
                         ) : (
                           <ActionBtn icon={<ShieldX className="h-3 w-3" />} label="Remove admin" onClick={() => removeAdmin(u.id, u.username)} variant="reject" />
                         )}
-                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="Profile" onClick={() => { navigate(`/users/${u.id}`); onClose(); }} variant="nav" />
+                        <ActionBtn icon={<ChevronRight className="h-3 w-3" />} label="Profile" onClick={() => { navigate(`/users/${u.username}`); onClose(); }} variant="nav" />
                       </div>
                     </div>
                   ))}

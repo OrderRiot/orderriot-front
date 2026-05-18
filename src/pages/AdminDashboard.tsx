@@ -350,7 +350,7 @@ function CampaignRow({ campaign: c, index }: { campaign: Campaign; index: number
 
         <div className="col-span-12 md:col-span-5">
           <Link
-            to={`/campaigns/${c.camp_id}`}
+            to={`/campaigns/${c.slug ?? c.camp_id}`}
             className="font-display text-xl hover:underline underline-offset-4"
           >
             {c.title}

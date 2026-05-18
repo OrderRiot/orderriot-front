@@ -47,7 +47,7 @@ export default function MyContributions() {
             {list.data.map((c) => (
               <li key={c.contrib_id}>
                 <Link
-                  to={`/campaigns/${c.camp_id}`}
+                  to={`/campaigns/${c.camp_slug ?? c.camp_id}`}
                   className="grid grid-cols-12 items-center gap-4 py-5"
                 >
                   <span className="col-span-2 md:col-span-1 font-mono text-xs text-muted-foreground tnum">

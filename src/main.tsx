@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -13,6 +14,8 @@ import Discover from "@/pages/Discover";
 import CampaignDetail from "@/pages/CampaignDetail";
 import CreateCampaign from "@/pages/CreateCampaign";
 import Profile from "@/pages/Profile";
+import ProfileSettings from "@/pages/ProfileSettings";
+import ProfileEdit from "@/pages/ProfileEdit";
 import MyCampaigns from "@/pages/MyCampaigns";
 import MyContributions from "@/pages/MyContributions";
 import PublicProfile from "@/pages/PublicProfile";
@@ -24,12 +27,15 @@ import OrganizationPage from "@/pages/OrganizationPage";
 import IdeaFeed from "@/pages/IdeaFeed";
 import IdeaDetail from "@/pages/IdeaDetail";
 import CreateIdea from "@/pages/CreateIdea";
+import EditIdea from "@/pages/EditIdea";
 import MyIdeas from "@/pages/MyIdeas";
 import CollabBoard from "@/pages/CollabBoard";
 import CollabDetail from "@/pages/CollabDetail";
 import CreateCollab from "@/pages/CreateCollab";
 import Messages from "@/pages/Messages";
 import ConversationView from "@/pages/ConversationView";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 import "./index.css";
@@ -53,10 +59,12 @@ const router = createBrowserRouter([
       { path: "/", element: <Landing /> },
       { path: "/login", element: <Login /> },
       { path: "/register", element: <Register /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
+      { path: "/reset-password", element: <ResetPassword /> },
       { path: "/discover", element: <Discover /> },
       { path: "/about", element: <About /> },
-      { path: "/campaigns/:id", element: <CampaignDetail /> },
-      { path: "/users/:id", element: <PublicProfile /> },
+      { path: "/campaigns/:slug", element: <CampaignDetail /> },
+      { path: "/users/:username", element: <PublicProfile /> },
       {
         path: "/create",
         element: (
@@ -78,6 +86,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/profile/settings",
+        element: (
+          <ProtectedRoute>
+            <ProfileSettings />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/profile/edit",
+        element: (
+          <ProtectedRoute>
+            <ProfileEdit />
           </ProtectedRoute>
         ),
       },
@@ -113,7 +137,7 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/organizations/:id", element: <OrganizationPage /> },
+      { path: "/organizations/:slug", element: <OrganizationPage /> },
       {
         path: "/profile/organizations",
         element: (
@@ -131,7 +155,7 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/collabs/:id", element: <CollabDetail /> },
+      { path: "/collabs/:slug", element: <CollabDetail /> },
       { path: "/ideas", element: <IdeaFeed /> },
       {
         path: "/ideas/new",
@@ -141,7 +165,15 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      { path: "/ideas/:id", element: <IdeaDetail /> },
+      { path: "/ideas/:slug", element: <IdeaDetail /> },
+      {
+        path: "/ideas/:slug/edit",
+        element: (
+          <ProtectedRoute>
+            <EditIdea />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "/profile/ideas",
         element: (
@@ -173,11 +205,13 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <Toaster />
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+    <HelmetProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+          <Toaster />
+        </QueryClientProvider>
+      </GoogleOAuthProvider>
+    </HelmetProvider>
   </React.StrictMode>,
 );

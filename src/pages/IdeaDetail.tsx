@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Lightbulb, ArrowRight, Pencil, Trash2, Globe, Upload, X, ImageIcon } from "lucide-react";
@@ -13,7 +14,6 @@ import {
   useDeleteIdea,
   useToggleInterest,
   useConvertIdea,
-  useUpdateIdea,
   useCollabs,
   uploadIdeaMedia,
   deleteIdeaMedia,
@@ -36,18 +36,17 @@ const statusLabel: Record<IdeaStatus, string> = {
 };
 
 export default function IdeaDetail() {
-  const { id } = useParams<{ id: string }>();
-  const ideaId = Number(id);
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const idea = useIdea(ideaId);
+  const idea = useIdea(slug ?? "");
   const me = useMe();
-  const publish = usePublishIdea(ideaId);
-  const del = useDeleteIdea(ideaId);
-  const toggleInterest = useToggleInterest(ideaId);
-  const convert = useConvertIdea(ideaId);
+  const ideaNumericId = idea.data?.id ?? 0;
+  const publish = usePublishIdea(ideaNumericId);
+  const del = useDeleteIdea(ideaNumericId);
+  const toggleInterest = useToggleInterest(ideaNumericId);
+  const convert = useConvertIdea(ideaNumericId);
 
   const [showDelete, setShowDelete] = useState(false);
-  const [editing, setEditing] = useState(false);
 
   if (idea.isLoading) {
     return (
@@ -104,18 +103,30 @@ export default function IdeaDetail() {
     try {
       const res = await convert.mutateAsync();
       toast.success("Campaign draft created. Add goals, tiers, and documents.");
-      navigate(`/create/${res.campaign_id}`);
+      navigate(`/create/${res.campaign_slug ?? res.campaign_id}`);
     } catch (err) {
       toast.error(apiError(err));
     }
   }
 
-  if (editing) {
-    return <EditIdeaForm ideaId={ideaId} onDone={() => setEditing(false)} />;
-  }
+  const pageDescription = o.subtitle || o.description || "A new idea on OrderRiot";
+  const pageImage = o.media_urls?.[0];
 
   return (
-    <div className="container-edge py-16 md:py-20 max-w-3xl">
+    <>
+    <Helmet>
+      <title>{o.title} — OrderRiot</title>
+      <meta name="description" content={pageDescription} />
+      <meta property="og:title" content={o.title} />
+      <meta property="og:description" content={pageDescription} />
+      <meta property="og:type" content="article" />
+      {pageImage && <meta property="og:image" content={pageImage} />}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={o.title} />
+      <meta name="twitter:description" content={pageDescription} />
+      {pageImage && <meta name="twitter:image" content={pageImage} />}
+    </Helmet>
+    <div className="container-edge py-16 md:py-20 max-w-4xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 flex-wrap mb-4">
@@ -127,23 +138,43 @@ export default function IdeaDetail() {
           )}
         </div>
         <h1 className="font-display text-3xl md:text-4xl font-semibold leading-tight">{o.title}</h1>
+        {o.subtitle && (
+          <p className="mt-2 text-lg text-muted-foreground">{o.subtitle}</p>
+        )}
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm text-muted-foreground">
           {o.rough_goal != null && <span>~{formatMoney(o.rough_goal)} target</span>}
           {o.target_audience && <span>For: {o.target_audience}</span>}
           <span>{new Date(o.created_at).toLocaleDateString("en-IN")}</span>
         </div>
+        {o.tags && o.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-4">
+            {o.tags.map((tag: string) => (
+              <span key={tag} className="border border-line px-2 py-0.5 text-[11px] text-muted-foreground">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Description */}
-      {o.description && (
-        <div className="prose prose-sm max-w-none text-muted-foreground mb-10 leading-relaxed">
+      {/* Story (rich text) */}
+      {o.story && (
+        <div
+          className="story-content mb-10"
+          dangerouslySetInnerHTML={{ __html: o.story }}
+        />
+      )}
+
+      {/* Legacy plain-text description fallback */}
+      {!o.story && o.description && (
+        <div className="mb-10 text-muted-foreground leading-relaxed text-sm">
           <p>{o.description}</p>
         </div>
       )}
 
       {/* Media */}
       {((o.media_urls && o.media_urls.length > 0) || isOwner) && o.status !== "converted" && (
-        <IdeaMediaSection ideaId={ideaId} mediaUrls={o.media_urls ?? []} isOwner={isOwner} />
+        <IdeaMediaSection ideaId={o.id} mediaUrls={o.media_urls ?? []} isOwner={isOwner} />
       )}
 
       {/* Converted: link to campaign */}
@@ -154,7 +185,7 @@ export default function IdeaDetail() {
             <div className="text-xs text-muted-foreground mt-0.5">Check out the full campaign page.</div>
           </div>
           <Button asChild size="sm" variant="outline" className="gap-1.5">
-            <Link to={`/campaigns/${o.campaign_id}`}>
+            <Link to={`/campaigns/${o.campaign_slug ?? o.campaign_id}`}>
               View campaign
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -196,6 +227,29 @@ export default function IdeaDetail() {
         </div>
       )}
 
+      {/* Risks & challenges */}
+      {o.risks && (
+        <div className="mb-10 border-t border-line pt-8">
+          <h2 className="font-display text-xl font-semibold mb-4">Risks &amp; Challenges</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{o.risks}</p>
+        </div>
+      )}
+
+      {/* FAQs */}
+      {o.faqs && o.faqs.length > 0 && (
+        <div className="mb-10 border-t border-line pt-8">
+          <h2 className="font-display text-xl font-semibold mb-6">Frequently Asked Questions</h2>
+          <div className="space-y-5">
+            {(o.faqs as Array<{ question: string; answer: string }>).map((faq, i) => (
+              <div key={i} className="border-b border-line pb-5 last:border-0">
+                <div className="font-medium text-sm mb-1.5">{faq.question}</div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Owner actions */}
       {isOwner && (
         <div className="flex flex-wrap gap-3">
@@ -217,7 +271,7 @@ export default function IdeaDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setEditing(true)}
+              onClick={() => navigate(`/ideas/${o.slug ?? o.id}/edit`)}
               className="gap-1.5"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -252,8 +306,9 @@ export default function IdeaDetail() {
       )}
 
       {/* Collab posts linked to this idea */}
-      <IdeaCollabSection ideaId={ideaId} isOwner={isOwner} />
+      <IdeaCollabSection ideaId={o.id} isOwner={isOwner} />
     </div>
+    </>
   );
 }
 
@@ -289,7 +344,7 @@ function IdeaCollabSection({ ideaId, isOwner }: { ideaId: number; isOwner: boole
           {collabs.data.map((post) => (
             <Link
               key={post.id}
-              to={`/collabs/${post.id}`}
+              to={`/collabs/${post.slug ?? post.id}`}
               className="flex items-start justify-between gap-4 border border-line p-5 hover:bg-muted/30 transition-colors group"
             >
               <div className="min-w-0">
@@ -425,107 +480,3 @@ function IdeaMediaSection({
   );
 }
 
-// ── Inline edit form ─────────────────────────────────────────────
-
-const CATEGORIES = [
-  "Technology", "Design", "Film", "Music", "Food", "Fashion",
-  "Games", "Education", "Social Impact", "Health", "Environment", "Other",
-];
-
-function EditIdeaForm({ ideaId, onDone }: { ideaId: number; onDone: () => void }) {
-  const idea = useIdea(ideaId);
-  const update = useUpdateIdea(ideaId);
-  const [form, setForm] = useState({
-    title: idea.data?.title ?? "",
-    description: idea.data?.description ?? "",
-    category: idea.data?.category ?? "",
-    target_audience: idea.data?.target_audience ?? "",
-    rough_goal: idea.data?.rough_goal ?? "",
-  });
-
-  function set(key: string, value: unknown) {
-    setForm((f) => ({ ...f, [key]: value }));
-  }
-
-  async function handleSave() {
-    try {
-      await update.mutateAsync({
-        title: form.title || undefined,
-        description: form.description || undefined,
-        category: form.category || undefined,
-        target_audience: form.target_audience || undefined,
-        rough_goal: form.rough_goal ? Number(form.rough_goal) : undefined,
-      });
-      toast.success("Idea updated.");
-      onDone();
-    } catch (err) {
-      toast.error(apiError(err));
-    }
-  }
-
-  return (
-    <div className="container-edge py-16 md:py-20 max-w-2xl">
-      <h2 className="font-display text-2xl font-semibold mb-8">Edit idea</h2>
-      <div className="space-y-6">
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Title</label>
-          <input
-            className="w-full border border-line px-4 py-3 text-base bg-transparent focus:outline-none focus:border-ink"
-            value={form.title}
-            onChange={(e) => set("title", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Description</label>
-          <textarea
-            className="w-full border border-line px-4 py-3 text-sm bg-transparent focus:outline-none focus:border-ink resize-none h-36"
-            value={form.description}
-            onChange={(e) => set("description", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-3">Category</label>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => set("category", form.category === c ? "" : c)}
-                className={`px-3 py-1.5 border text-sm transition-colors ${
-                  form.category === c
-                    ? "border-ink bg-ink text-paper"
-                    : "border-line text-muted-foreground hover:border-ink hover:text-ink"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Target audience</label>
-          <input
-            className="w-full border border-line px-4 py-3 text-sm bg-transparent focus:outline-none focus:border-ink"
-            value={form.target_audience}
-            onChange={(e) => set("target_audience", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider mb-2">Rough funding target</label>
-          <input
-            type="number"
-            className="border border-line px-4 py-3 text-sm bg-transparent focus:outline-none focus:border-ink w-48"
-            value={form.rough_goal}
-            onChange={(e) => set("rough_goal", e.target.value)}
-          />
-        </div>
-        <div className="flex gap-3 pt-2">
-          <Button onClick={handleSave} disabled={update.isPending}>
-            {update.isPending ? "Saving..." : "Save changes"}
-          </Button>
-          <Button variant="ghost" onClick={onDone}>Cancel</Button>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Share2, ShieldCheck, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,9 @@ import {
   useMe,
   useRewards,
   useSubmitCampaign,
+  useCampaignPosts,
+  useCreateCampaignPost,
+  type CampaignPostItem,
 } from "@/lib/queries";
 import { daysLeft, formatMoney, pad2, pct } from "@/lib/utils";
 import type { Reward } from "@/lib/types";
@@ -22,13 +26,13 @@ import { toast } from "sonner";
 import { apiError } from "@/lib/api";
 
 export default function CampaignDetail() {
-  const { id } = useParams();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const campId = Number(id);
-  const camp = useCampaign(campId);
-  const rewards = useRewards(campId);
+  const camp = useCampaign(slug ?? "");
+  const campNumericId = camp.data?.camp_id ?? 0;
+  const rewards = useRewards(campNumericId);
   const me = useMe();
-  const submit = useSubmitCampaign(campId);
+  const submit = useSubmitCampaign(campNumericId);
   const [pledgeOpen, setPledgeOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
@@ -80,8 +84,24 @@ export default function CampaignDetail() {
     }
   }
 
+  const pageDesc = c.subtitle || c.description || `Back ${c.title} on OrderRiot`;
+  const pageImage = c.media?.[0];
+
   return (
-    <article>
+    <>
+    <Helmet>
+      <title>{c.title} — OrderRiot</title>
+      <meta name="description" content={pageDesc} />
+      <meta property="og:title" content={c.title} />
+      <meta property="og:description" content={pageDesc} />
+      <meta property="og:type" content="article" />
+      {pageImage && <meta property="og:image" content={pageImage} />}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={c.title} />
+      <meta name="twitter:description" content={pageDesc} />
+      {pageImage && <meta name="twitter:image" content={pageImage} />}
+    </Helmet>
+    <article className="max-w-5xl mx-auto">
       {/* Top bar */}
       <div className="container-edge py-6 flex items-center justify-between text-sm">
         <Link to="/discover" className="link-quiet inline-flex items-center gap-2 text-muted-foreground">
@@ -135,7 +155,7 @@ export default function CampaignDetail() {
                 <span className="uppercase tracking-[0.18em] text-[10px]">
                   by
                 </span>{" "}
-                <Link to={`/users/${c.owner_id}`} className="link-quiet font-medium">
+                <Link to={`/users/${c.owner_username ?? c.owner_id}`} className="link-quiet font-medium">
                   {c.company}
                 </Link>
               </p>
@@ -343,16 +363,11 @@ export default function CampaignDetail() {
           </TabsContent>
 
           <TabsContent value="updates">
-            <div className="border border-dashed border-line p-12 text-center">
-              <div className="italic-display text-2xl">No updates yet.</div>
-              <p className="text-muted-foreground text-sm mt-2">
-                Once the creator posts updates, they'll show up here.
-              </p>
-            </div>
+            <UpdatesTab campId={c.camp_id} isOwner={isOwner} campaignStatus={c.status} />
           </TabsContent>
 
           <TabsContent value="comments">
-            <Comments campId={campId} />
+            <Comments campId={c.camp_id} />
           </TabsContent>
         </Tabs>
       </section>
@@ -360,10 +375,11 @@ export default function CampaignDetail() {
       <BackDialog
         open={pledgeOpen}
         onOpenChange={setPledgeOpen}
-        campId={campId}
+        campId={c.camp_id}
         reward={selectedReward}
       />
     </article>
+    </>
   );
 }
 
@@ -374,6 +390,114 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
         {label}
       </dt>
       <dd className="tnum text-right">{children}</dd>
+    </div>
+  );
+}
+
+function UpdatesTab({
+  campId,
+  isOwner,
+  campaignStatus,
+}: {
+  campId: number;
+  isOwner: boolean;
+  campaignStatus: string;
+}) {
+  const posts = useCampaignPosts(campId);
+  const create = useCreateCampaignPost(campId);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const canPost = isOwner && (campaignStatus === "active" || campaignStatus === "funded");
+
+  async function handlePost(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await create.mutateAsync({ title: title.trim(), body: body.trim() });
+      setTitle("");
+      setBody("");
+      setShowForm(false);
+      toast.success("Update posted.");
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      {canPost && !showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="border border-dashed border-line px-5 py-3 text-sm text-muted-foreground hover:text-ink hover:border-ink transition-colors w-full text-left"
+        >
+          + Post an update to your backers
+        </button>
+      )}
+
+      {canPost && showForm && (
+        <form onSubmit={handlePost} className="border border-line p-6 space-y-4">
+          <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+            New update
+          </div>
+          <div>
+            <input
+              className="w-full border-b border-line bg-transparent text-lg font-display outline-none pb-1 placeholder:text-muted-foreground"
+              placeholder="Update title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              maxLength={255}
+            />
+          </div>
+          <div>
+            <textarea
+              className="w-full bg-transparent text-sm leading-relaxed outline-none resize-none placeholder:text-muted-foreground min-h-[120px]"
+              placeholder="Share what's new with your backers..."
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex items-center gap-3 pt-2 border-t border-line">
+            <Button type="submit" size="sm" disabled={create.isPending}>
+              {create.isPending ? "Posting…" : "Post update"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="text-xs text-muted-foreground hover:text-ink"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {posts.isLoading && <Skeleton className="h-32" />}
+
+      {posts.data && posts.data.length === 0 && !canPost && (
+        <div className="border border-dashed border-line p-12 text-center">
+          <div className="italic-display text-2xl">No updates yet.</div>
+          <p className="text-muted-foreground text-sm mt-2">
+            Once the creator posts updates, they'll show up here.
+          </p>
+        </div>
+      )}
+
+      {posts.data?.map((p: CampaignPostItem) => (
+        <div key={p.id} className="border-b border-line pb-8 last:border-0">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
+            {new Date(p.created_at).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </div>
+          <h3 className="font-display text-xl mb-3">{p.title}</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{p.body}</p>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowUpRight, MessageSquare, Users, CheckCircle, X, ExternalLink } from "lucide-react";
@@ -12,6 +13,8 @@ import {
   useCloseCollab,
   useCollabResponses,
   useStartConversation,
+  useAcceptCollabResponse,
+  useRejectCollabResponse,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import type { CollabCallType, CollabStatus } from "@/lib/types";
@@ -35,9 +38,8 @@ const STATUS_VARIANT: Record<CollabStatus, "default" | "outline" | "solid"> = {
 };
 
 export default function CollabDetail() {
-  const { id } = useParams<{ id: string }>();
-  const collabId = Number(id);
-  const collab = useCollab(collabId);
+  const { slug } = useParams<{ slug: string }>();
+  const collab = useCollab(slug ?? "");
   const me = useMe();
   const navigate = useNavigate();
 
@@ -61,9 +63,22 @@ export default function CollabDetail() {
 
   const o = collab.data;
   const isOwner = me.data?.user_id === o.owner_id;
+  const collabId = o.id;
+  const pageDesc = o.description || `Collaboration: ${o.title} on OrderRiot`;
 
   return (
-    <div className="container-edge py-16 md:py-20 max-w-3xl">
+    <>
+    <Helmet>
+      <title>{o.title} — OrderRiot Collabs</title>
+      <meta name="description" content={pageDesc} />
+      <meta property="og:title" content={o.title} />
+      <meta property="og:description" content={pageDesc} />
+      <meta property="og:type" content="article" />
+      <meta name="twitter:card" content="summary" />
+      <meta name="twitter:title" content={o.title} />
+      <meta name="twitter:description" content={pageDesc} />
+    </Helmet>
+    <div className="container-edge py-16 md:py-20 max-w-4xl">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 flex-wrap mb-4">
@@ -89,7 +104,7 @@ export default function CollabDetail() {
                 {o.owner.username.slice(0, 1).toUpperCase()}
               </div>
             )}
-            <Link to={`/users/${o.owner_id}`} className="hover:text-ink transition-colors font-medium">
+            <Link to={`/users/${o.owner.username}`} className="hover:text-ink transition-colors font-medium">
               {o.owner.username}
             </Link>
           </div>
@@ -97,13 +112,13 @@ export default function CollabDetail() {
             <span className="flex items-center gap-1">
               for
               {o.idea_id && (
-                <Link to={`/ideas/${o.idea_id}`} className="hover:text-ink transition-colors flex items-center gap-0.5">
+                <Link to={`/ideas/${o.idea_slug ?? o.idea_id}`} className="hover:text-ink transition-colors flex items-center gap-0.5">
                   {o.idea_title}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               )}
               {o.campaign_id && (
-                <Link to={`/campaigns/${o.campaign_id}`} className="hover:text-ink transition-colors flex items-center gap-0.5">
+                <Link to={`/campaigns/${o.campaign_slug ?? o.campaign_id}`} className="hover:text-ink transition-colors flex items-center gap-0.5">
                   {o.campaign_title}
                   <ExternalLink className="h-3 w-3" />
                 </Link>
@@ -173,6 +188,7 @@ export default function CollabDetail() {
       {/* Responses (owner only) */}
       {isOwner && <ResponsesList collabId={collabId} />}
     </div>
+    </>
   );
 }
 
@@ -291,6 +307,8 @@ function ResponseForm({ collabId }: { collabId: number }) {
 function ResponsesList({ collabId }: { collabId: number }) {
   const responses = useCollabResponses(collabId, true);
   const startConv = useStartConversation();
+  const accept = useAcceptCollabResponse(collabId);
+  const reject = useRejectCollabResponse(collabId);
   const navigate = useNavigate();
 
   async function handleMessage(userId: number) {
@@ -318,7 +336,16 @@ function ResponsesList({ collabId }: { collabId: number }) {
       </div>
       <div className="space-y-5">
         {responses.data.map((r) => (
-          <div key={r.id} className="border border-line p-5">
+          <div
+            key={r.id}
+            className={`border p-5 ${
+              r.status === "accepted"
+                ? "border-green-600/40 bg-green-50/30"
+                : r.status === "rejected"
+                ? "border-line opacity-60"
+                : "border-line"
+            }`}
+          >
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
                 {r.avatar_url ? (
@@ -329,24 +356,64 @@ function ResponsesList({ collabId }: { collabId: number }) {
                   </div>
                 )}
                 <div>
-                  <Link to={`/users/${r.user_id}`} className="font-medium text-sm hover:underline">
-                    {r.username}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/users/${r.username}`} className="font-medium text-sm hover:underline">
+                      {r.username}
+                    </Link>
+                    {r.status === "accepted" && (
+                      <span className="text-[10px] font-semibold text-green-600 uppercase tracking-widest">Accepted</span>
+                    )}
+                    {r.status === "rejected" && (
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Not selected</span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {new Date(r.created_at).toLocaleDateString("en-IN")}
                   </div>
                 </div>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 shrink-0"
-                onClick={() => handleMessage(r.user_id)}
-                disabled={startConv.isPending}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                Message
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                {r.status === "pending" && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 border-green-600/40 text-green-700 hover:bg-green-50"
+                      onClick={async () => {
+                        try { await accept.mutateAsync(r.id); }
+                        catch (err) { toast.error(apiError(err)); }
+                      }}
+                      disabled={accept.isPending}
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 border-destructive/40 text-destructive hover:bg-destructive/5"
+                      onClick={async () => {
+                        try { await reject.mutateAsync(r.id); }
+                        catch (err) { toast.error(apiError(err)); }
+                      }}
+                      disabled={reject.isPending}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => handleMessage(r.user_id)}
+                  disabled={startConv.isPending}
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Message
+                </Button>
+              </div>
             </div>
             <p className="text-sm leading-relaxed">{r.message}</p>
             {r.portfolio_link && (

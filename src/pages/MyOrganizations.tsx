@@ -30,7 +30,7 @@ const orgTypeLabel: Record<string, string> = {
 function OrgCard({ org }: { org: OrgListItem }) {
   return (
     <Link
-      to={`/organizations/${org.id}`}
+      to={`/organizations/${org.slug ?? org.id}`}
       className="flex items-start justify-between gap-4 border border-line p-6 hover:bg-muted/30 transition-colors group"
     >
       <div className="flex items-center gap-4 min-w-0">
