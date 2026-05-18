@@ -224,18 +224,18 @@ export default function CampaignDetail() {
         </div>
 
         <aside className="col-span-12 lg:col-span-4 lg:sticky lg:top-24 self-start">
-          <div className="border border-ink p-6 md:p-8">
-            <div className="flex items-end justify-between gap-4 tnum">
-              <div>
-                <div className="font-display text-5xl leading-none">
+          <div className="border border-ink p-6">
+            <div className="flex items-end justify-between gap-3 tnum">
+              <div className="min-w-0">
+                <div className="font-display text-3xl leading-none truncate">
                   {formatMoney(c.current_amount, { compact: true })}
                 </div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-2">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-2 leading-tight">
                   Pledged of {formatMoney(c.goal_amount, { compact: true })}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-display text-5xl leading-none">{percent}%</div>
+              <div className="text-right shrink-0">
+                <div className="font-display text-3xl leading-none">{percent}%</div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-2">
                   Funded
                 </div>
@@ -249,7 +249,7 @@ export default function CampaignDetail() {
                 <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Backers
                 </dt>
-                <dd className="font-display text-2xl mt-1 tnum">
+                <dd className="font-display text-xl mt-1 tnum">
                   {(c.key_backers?.length ?? 0).toString()}
                 </dd>
               </div>
@@ -257,8 +257,8 @@ export default function CampaignDetail() {
                 <dt className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   {left !== null ? "Days left" : "Status"}
                 </dt>
-                <dd className="font-display text-2xl mt-1 tnum">
-                  {left !== null ? left : c.status}
+                <dd className="font-display text-xl mt-1 tnum truncate">
+                  {left !== null ? left : c.status.replace("_", " ")}
                 </dd>
               </div>
             </dl>

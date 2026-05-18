@@ -189,14 +189,9 @@ const router = createBrowserRouter([
             <Messages />
           </ProtectedRoute>
         ),
-      },
-      {
-        path: "/messages/:convId",
-        element: (
-          <ProtectedRoute>
-            <ConversationView />
-          </ProtectedRoute>
-        ),
+        children: [
+          { path: ":convId", element: <ConversationView /> },
+        ],
       },
       { path: "*", element: <NotFound /> },
     ],
