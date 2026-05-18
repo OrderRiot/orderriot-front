@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +23,8 @@ import {
   useAddReward,
   useCampaign,
   useCreateCampaign,
+  useMe,
+  useMyOrganizations,
   useRewards,
   useSubmitCampaign,
   useUpdateCampaign,
@@ -93,9 +95,50 @@ export default function CreateCampaign() {
   const update = useUpdateCampaign(editingId ?? 0);
   const submit = useSubmitCampaign(editingId ?? 0);
   const navigate = useNavigate();
+  const me = useMe();
+  const myOrgs = useMyOrganizations();
 
   const [step, setStep] = useState<StepKey>("basics");
   const [draftId, setDraftId] = useState<number | null>(editingId);
+
+  const hasVerifiedOrg = myOrgs.data?.some((o) => o.status === "verified") ?? false;
+
+  if (!editingId && (me.data || me.isSuccess)) {
+    if (!me.data?.isverified) {
+      return (
+        <div className="container-edge py-20 max-w-2xl">
+          <div className="border border-line p-10 space-y-4">
+            <div className="editorial-index">— Access required</div>
+            <h1 className="font-display text-display-sm">Identity verification required</h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              To create a campaign you must first verify your identity. Upload your ID proof from your profile settings.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button asChild><Link to="/profile/settings">Go to settings</Link></Button>
+              <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (!hasVerifiedOrg && !myOrgs.isLoading) {
+      return (
+        <div className="container-edge py-20 max-w-2xl">
+          <div className="border border-line p-10 space-y-4">
+            <div className="editorial-index">— Access required</div>
+            <h1 className="font-display text-display-sm">Verified organization required</h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Campaigns must be run under a verified organization. Create an organization and submit it for admin verification first.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button asChild><Link to="/organizations/new">Create organization</Link></Button>
+              <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // When editing, hydrate draftId once the campaign loads
   useEffect(() => {
@@ -132,7 +175,7 @@ export default function CreateCampaign() {
         </div>
       </div>
 
-      <div className="container-edge py-12 md:py-16 max-w-3xl">
+      <div className="container-edge py-12 md:py-16 max-w-4xl">
         {step === "basics" && (
           <BasicsStep
             initial={existing.data}

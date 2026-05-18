@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useCreateOrganization } from "@/lib/queries";
+import { useCreateOrganization, useMe } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import type { OrgCreatePayload, OrgType, EntityType } from "@/lib/types";
 
@@ -62,8 +62,27 @@ function StepIndicator({ current, steps }: { current: Step; steps: Step[] }) {
 export default function CreateOrganization() {
   const navigate = useNavigate();
   const createOrg = useCreateOrganization();
+  const me = useMe();
 
   const [step, setStep] = useState<Step>("basics");
+
+  if (me.isSuccess && !me.data?.isverified) {
+    return (
+      <div className="container-edge py-20 max-w-2xl">
+        <div className="border border-line p-10 space-y-4">
+          <div className="editorial-index">— Access required</div>
+          <h1 className="font-display text-display-sm">Identity verification required</h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            You must verify your identity before creating an organization. Upload your ID proof from profile settings.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <Button asChild><Link to="/profile/settings">Go to settings</Link></Button>
+            <Button variant="ghost" onClick={() => navigate(-1)}>Back</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const [form, setForm] = useState<Partial<OrgCreatePayload>>({});
 
   function set(key: keyof OrgCreatePayload, value: unknown) {
@@ -79,14 +98,14 @@ export default function CreateOrganization() {
     try {
       const org = await createOrg.mutateAsync(form as OrgCreatePayload);
       toast.success("Organization created. Pending admin review.");
-      navigate(`/organizations/${org.id}`);
+      navigate(`/organizations/${org.slug ?? org.id}`);
     } catch (err) {
       toast.error(apiError(err));
     }
   }
 
   return (
-    <div className="container-edge py-16 md:py-20 max-w-2xl">
+    <div className="container-edge py-16 md:py-20 max-w-4xl">
       <div className="mb-10">
         <div className="editorial-index">— New</div>
         <h1 className="font-display text-display-md mt-3 leading-[1.02]">
