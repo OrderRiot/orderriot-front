@@ -4,7 +4,7 @@ import { Footer } from "./Footer";
 
 export function AppLayout() {
   const { pathname } = useLocation();
-  const hideFooter = pathname.startsWith("/messages");
+  const hideFooter = /^\/(messages|create|profile|admin|organizations\/new|ideas\/[^/]+\/edit|forgot-password|reset-password)/.test(pathname);
 
   return (
     <div className="flex min-h-full flex-col bg-paper">
