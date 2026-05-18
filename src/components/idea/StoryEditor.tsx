@@ -63,7 +63,7 @@ export function StoryEditor({ value, onChange, onUploadImage, storageKey }: Prop
         HTMLAttributes: { class: "story-link", rel: "noopener noreferrer", target: "_blank" },
       }),
       Youtube.configure({
-        width: "100%",
+        width: 640,
         height: 340,
         HTMLAttributes: { class: "story-youtube" },
       }),

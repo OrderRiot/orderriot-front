@@ -90,7 +90,7 @@ const steps: { key: StepKey; title: string; caption: string }[] = [
 export default function CreateCampaign() {
   const params = useParams();
   const editingId = params.id ? Number(params.id) : null;
-  const existing = useCampaign(editingId ?? 0);
+  const existing = useCampaign(editingId ? String(editingId) : "");
   const create = useCreateCampaign();
   const update = useUpdateCampaign(editingId ?? 0);
   const submit = useSubmitCampaign(editingId ?? 0);
@@ -941,7 +941,7 @@ function DocumentsStep({
   onBack: () => void;
   onNext: () => void;
 }) {
-  const camp = useCampaign(campId);
+  const camp = useCampaign(String(campId));
   const [uploading, setUploading] = useState(false);
   const [docs, setDocs] = useState<string[]>(() => camp.data?.documents ?? []);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1053,7 +1053,7 @@ function ReviewStep({
   onLaunch: () => void;
   launching: boolean;
 }) {
-  const camp = useCampaign(campId);
+  const camp = useCampaign(String(campId));
   const rewards = useRewards(campId);
 
   const completeness = useMemo(() => {
