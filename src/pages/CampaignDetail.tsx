@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Share2, ShieldCheck, Tag } from "lucide-react";
+import { ArrowLeft, Eye, MapPin, Send, Share2, ShieldCheck, Tag, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import { RewardTier } from "@/components/campaign/RewardTier";
 import { Comments } from "@/components/campaign/Comments";
 import { BackDialog } from "@/components/campaign/BackDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBanner } from "@/components/ui/status-banner";
 import {
   useCampaign,
   useMe,
@@ -38,12 +39,29 @@ export default function CampaignDetail() {
 
   if (camp.isLoading) {
     return (
-      <div className="container-edge py-12">
-        <Skeleton className="h-6 w-1/4 mb-6" />
-        <Skeleton className="h-16 w-2/3 mb-8" />
-        <div className="grid grid-cols-12 gap-8">
-          <Skeleton className="col-span-8 aspect-[16/10]" />
-          <Skeleton className="col-span-4 h-96" />
+      <div className="max-w-5xl mx-auto">
+        <div className="container-edge pt-8 pb-12">
+          <div className="flex gap-2 mb-5">
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+          <Skeleton className="h-12 w-3/4 mb-3" />
+          <Skeleton className="h-6 w-1/2 mb-2" />
+          <Skeleton className="h-4 w-1/4" />
+        </div>
+        <div className="container-edge grid grid-cols-12 gap-8">
+          <div className="col-span-12 lg:col-span-8 space-y-3">
+            <Skeleton className="aspect-[16/10] w-full" />
+            <div className="flex gap-2">
+              <Skeleton className="h-16 w-16" />
+              <Skeleton className="h-16 w-16" />
+              <Skeleton className="h-16 w-16" />
+            </div>
+          </div>
+          <div className="col-span-12 lg:col-span-4 space-y-4">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-12 w-full" />
+          </div>
         </div>
       </div>
     );
@@ -102,6 +120,41 @@ export default function CampaignDetail() {
       {pageImage && <meta name="twitter:image" content={pageImage} />}
     </Helmet>
     <article className="max-w-5xl mx-auto">
+      {/* Status banners — owner-facing */}
+      {isOwner && c.status === "draft" && (
+        <StatusBanner
+          variant="neutral"
+          icon={<Eye className="h-4 w-4 mt-0.5 shrink-0" />}
+          title="Draft — only you can see this"
+          description="This campaign is not publicly visible. Fill in all sections and submit for review when ready."
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/create/${c.camp_id}`}>Edit draft</Link>
+            </Button>
+          }
+          className="rounded-none border-x-0 border-t-0"
+        />
+      )}
+      {isOwner && c.status === "pending_review" && (
+        <StatusBanner
+          variant="warning"
+          pulse
+          icon={<Send className="h-4 w-4 mt-0.5 shrink-0" />}
+          title="Under review — no action needed"
+          description="Your campaign has been submitted and is awaiting admin approval. We'll email you once it's live."
+          className="rounded-none border-x-0 border-t-0"
+        />
+      )}
+      {c.status === "cancelled" && (
+        <StatusBanner
+          variant="neutral"
+          icon={<XCircle className="h-4 w-4 mt-0.5 shrink-0" />}
+          title="Campaign cancelled"
+          description="This campaign is no longer active. No backers were charged."
+          className="rounded-none border-x-0 border-t-0"
+        />
+      )}
+
       {/* Top bar */}
       <div className="container-edge py-6 flex items-center justify-between text-sm">
         <Link to="/discover" className="link-quiet inline-flex items-center gap-2 text-muted-foreground">

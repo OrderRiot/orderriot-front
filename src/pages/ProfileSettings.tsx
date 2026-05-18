@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, ShieldX, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -64,8 +65,14 @@ export default function ProfileSettings() {
 
   if (me.isLoading || !me.data) {
     return (
-      <div className="container-edge py-32 text-center text-muted-foreground tracking-[0.18em] text-xs uppercase">
-        Loading…
+      <div className="container-edge py-16 md:py-20 max-w-2xl space-y-8">
+        <Skeleton className="h-8 w-40" />
+        <div className="space-y-4">
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+        </div>
+        <Skeleton className="h-24" />
       </div>
     );
   }

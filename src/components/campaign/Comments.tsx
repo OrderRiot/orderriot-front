@@ -4,6 +4,7 @@ import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   useComments,
@@ -70,7 +71,20 @@ export function Comments({ campId }: { campId: number }) {
       )}
 
       {list.isLoading && (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <ul className="border-y border-line divide-y divide-line">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="py-6 grid grid-cols-12 gap-x-4">
+              <div className="col-span-1">
+                <Skeleton className="h-9 w-9 rounded-full" />
+              </div>
+              <div className="col-span-11 space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {list.data && list.data.length === 0 && (

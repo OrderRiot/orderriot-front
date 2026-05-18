@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Settings, User as UserIcon } from "lucide-react";
+import { ArrowUpRight, Settings, ShieldCheck, ShieldX, Upload, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMe } from "@/lib/queries";
+import { StatusBanner } from "@/components/ui/status-banner";
+import { useMe, useMyVerification } from "@/lib/queries";
 import { initials } from "@/lib/utils";
 import { UserType } from "@/lib/types";
 
@@ -16,23 +18,36 @@ const typeLabel: Record<number, string> = {
 
 export default function Profile() {
   const me = useMe();
+  const verification = useMyVerification();
 
   if (me.isLoading || !me.data) {
     return (
       <div className="container-edge py-20 max-w-3xl space-y-6">
-        <Skeleton className="h-20 w-20 rounded-full" />
-        <Skeleton className="h-8 w-1/3" />
-        <Skeleton className="h-4 w-1/4" />
+        <div className="flex items-start gap-5">
+          <Skeleton className="h-20 w-20 rounded-full shrink-0" />
+          <div className="flex-1 space-y-3 pt-2">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-9 w-1/2" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        </div>
+        <Skeleton className="h-14" />
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
       </div>
     );
   }
 
   const user = me.data;
+  const v = verification.data;
+  const vStatus = v?.status;
 
   return (
     <div className="container-edge py-12 md:py-20 max-w-3xl">
       {/* Header */}
-      <div className="flex items-start gap-5 mb-12">
+      <div className="flex items-start gap-5 mb-8">
         <Avatar className="h-20 w-20 shrink-0">
           <AvatarImage src={user.avatar_url ?? undefined} alt={user.username} />
           <AvatarFallback className="text-xl">{initials(user.name || user.username)}</AvatarFallback>
@@ -62,6 +77,54 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Verification status banner */}
+      {!verification.isLoading && (
+        <div className="mb-8">
+          {!v && (
+            <StatusBanner
+              variant="info"
+              icon={<Upload className="h-4 w-4 mt-0.5" />}
+              title="Verify your identity to unlock all features"
+              description="Upload a government-issued ID to post ideas, collabs, and run campaigns."
+              action={
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/profile/settings">Verify now</Link>
+                </Button>
+              }
+            />
+          )}
+          {vStatus === "pending" && (
+            <StatusBanner
+              variant="warning"
+              pulse
+              title="Identity verification under review"
+              description="We'll email you once it's approved — usually within 1 business day."
+            />
+          )}
+          {vStatus === "approved" && (
+            <StatusBanner
+              variant="success"
+              icon={<ShieldCheck className="h-4 w-4 mt-0.5" />}
+              title="Identity verified"
+              description="You have full access to create campaigns, ideas, and collabs."
+            />
+          )}
+          {vStatus === "rejected" && (
+            <StatusBanner
+              variant="error"
+              icon={<ShieldX className="h-4 w-4 mt-0.5" />}
+              title="Verification rejected"
+              description={v?.admin_note ?? "Your submitted ID was not accepted."}
+              action={
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/profile/settings">Resubmit</Link>
+                </Button>
+              }
+            />
+          )}
+        </div>
+      )}
 
       {/* Two main actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">

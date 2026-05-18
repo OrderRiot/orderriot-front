@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Camera, ExternalLink, Plus, Pencil, Trash2, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,8 +44,17 @@ export default function ProfileEdit() {
 
   if (me.isLoading || !me.data) {
     return (
-      <div className="container-edge py-32 text-center text-muted-foreground tracking-[0.18em] text-xs uppercase">
-        Loading…
+      <div className="container-edge py-16 md:py-20 max-w-2xl space-y-8">
+        <div className="flex items-center gap-5">
+          <Skeleton className="h-20 w-20 rounded-full shrink-0" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <Skeleton className="h-10" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-10" />
       </div>
     );
   }
@@ -278,7 +288,12 @@ function PortfolioSection() {
         />
       )}
 
-      {portfolio.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+      {portfolio.isLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+      )}
 
       {!portfolio.isLoading && portfolio.data?.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground italic">No portfolio items yet.</p>

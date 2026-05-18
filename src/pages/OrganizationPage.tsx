@@ -5,14 +5,17 @@ import {
   Building2,
   Globe,
   ShieldCheck,
+  ShieldX,
   Plus,
   X,
   ExternalLink,
   Upload,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBanner } from "@/components/ui/status-banner";
 import {
   useOrganization,
   useMe,
@@ -53,10 +56,20 @@ export default function OrganizationPage() {
 
   if (org.isLoading) {
     return (
-      <div className="container-edge py-16 md:py-20 space-y-6">
-        <Skeleton className="h-24 w-64" />
-        <Skeleton className="h-48" />
-        <Skeleton className="h-64" />
+      <div className="container-edge py-16 md:py-20 max-w-5xl space-y-8">
+        <div className="flex items-center gap-5">
+          <Skeleton className="h-20 w-20 rounded-full shrink-0" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-16" />
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+        </div>
       </div>
     );
   }
@@ -98,12 +111,9 @@ export default function OrganizationPage() {
                 </a>
               )}
             </div>
-            {o.status !== "verified" && (
-              <Badge
-                variant={o.status === "pending" ? "default" : "outline"}
-                className="mt-2"
-              >
-                {o.status === "pending" ? "Pending verification" : "Not verified"}
+            {o.status === "pending" && (
+              <Badge variant="default" className="mt-2">
+                Pending verification
               </Badge>
             )}
           </div>
@@ -118,11 +128,29 @@ export default function OrganizationPage() {
         <p className="text-muted-foreground max-w-2xl mb-12 leading-relaxed">{o.description}</p>
       )}
 
+      {isOwner && o.status === "pending" && (
+        <StatusBanner
+          variant="warning"
+          pulse
+          icon={<Clock className="h-4 w-4 mt-0.5" />}
+          title="Verification pending"
+          description="Your organization has been submitted for admin review. Once verified, you'll be able to run campaigns under this entity."
+          className="mb-10"
+        />
+      )}
       {o.rejection_note && (
-        <div className="border border-destructive/40 px-5 py-4 text-sm mb-10 max-w-2xl">
-          <span className="font-semibold text-destructive">Rejected:</span>{" "}
-          {o.rejection_note}
-        </div>
+        <StatusBanner
+          variant="error"
+          icon={<ShieldX className="h-4 w-4 mt-0.5" />}
+          title="Verification rejected"
+          description={o.rejection_note}
+          action={isOwner ? (
+            <Button asChild size="sm" variant="outline">
+              <a href="#identity-proof">Resubmit proof</a>
+            </Button>
+          ) : undefined}
+          className="mb-10"
+        />
       )}
 
       {/* ── Members ── */}
