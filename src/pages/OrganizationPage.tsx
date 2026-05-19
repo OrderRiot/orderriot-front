@@ -197,7 +197,7 @@ export default function OrganizationPage() {
 
         {o.portfolio.length === 0 ? (
           <div className="border border-dashed border-line p-12 text-center text-muted-foreground text-sm">
-            No portfolio items yet.
+            No portfolio items yet. Add work to showcase what your organization does.
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

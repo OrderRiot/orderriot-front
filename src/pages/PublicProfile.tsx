@@ -71,7 +71,7 @@ export default function PublicProfile() {
   if (user.isError || !user.data) {
     return (
       <div className="container-edge py-32 text-center">
-        <h2 className="font-display text-4xl">Person not found.</h2>
+        <h2 className="font-display text-4xl">Profile not found.</h2>
         <p className="text-muted-foreground mt-3">This profile doesn't exist or was removed.</p>
       </div>
     );

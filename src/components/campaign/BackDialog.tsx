@@ -75,12 +75,12 @@ export function BackDialog({
         <DialogHeader>
           <div className="editorial-index">— Pledge</div>
           <DialogTitle>
-            {reward ? `Back · ${reward.title}` : "Back this campaign"}
+            {reward ? `Pledge: ${reward.title}` : "Back this campaign"}
           </DialogTitle>
           <DialogDescription>
             {reward
               ? `Minimum ${formatMoney(reward.min_amount)}. Pledge more if you want.`
-              : "Choose any amount. Every rupee gets the project closer."}
+              : "Choose any amount. Every rupee gets this campaign closer."}
           </DialogDescription>
         </DialogHeader>
 

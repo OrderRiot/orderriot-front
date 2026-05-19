@@ -296,7 +296,7 @@ function PortfolioSection() {
       )}
 
       {!portfolio.isLoading && portfolio.data?.length === 0 && !showForm && (
-        <p className="text-sm text-muted-foreground italic">No portfolio items yet.</p>
+        <p className="text-sm text-muted-foreground italic">No portfolio items yet. Add work to showcase on your profile.</p>
       )}
 
       {portfolio.data && portfolio.data.length > 0 && (

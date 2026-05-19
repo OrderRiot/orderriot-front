@@ -297,7 +297,7 @@ export default function CampaignDetail() {
                   size="lg"
                   onClick={() => openPledge()}
                 >
-                  Back this project
+                  Back this campaign
                 </Button>
               ) : (
                 <Button className="w-full" size="lg" disabled>

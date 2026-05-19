@@ -181,7 +181,7 @@ export default function IdeaDetail() {
       {o.status === "converted" && o.campaign_id && (
         <div className="border border-line p-5 mb-10 flex items-center justify-between gap-4">
           <div>
-            <div className="font-semibold text-sm">This idea became a campaign.</div>
+            <div className="font-semibold text-sm">This idea launched as a campaign.</div>
             <div className="text-xs text-muted-foreground mt-0.5">Check out the full campaign page.</div>
           </div>
           <Button asChild size="sm" variant="outline" className="gap-1.5">
@@ -293,9 +293,9 @@ export default function IdeaDetail() {
 
           {showDelete && (
             <div className="flex gap-2 items-center">
-              <span className="text-sm text-muted-foreground">Delete this idea?</span>
+              <span className="text-sm text-muted-foreground">Delete this idea? This can't be undone.</span>
               <Button size="sm" variant="outline" onClick={handleDelete} disabled={del.isPending}>
-                Confirm
+                Delete idea
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowDelete(false)}>
                 Cancel

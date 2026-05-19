@@ -89,8 +89,8 @@ export function Comments({ campId }: { campId: number }) {
 
       {list.data && list.data.length === 0 && (
         <div className="border border-dashed border-line p-12 text-center">
-          <div className="italic-display text-2xl">No comments yet.</div>
-          <p className="text-muted-foreground text-sm mt-2">Be the first.</p>
+          <div className="italic-display text-2xl">No comments yet</div>
+          <p className="text-muted-foreground text-sm mt-2">Be the first to start the conversation.</p>
         </div>
       )}
 

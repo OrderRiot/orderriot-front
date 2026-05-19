@@ -322,7 +322,7 @@ function BasicsStep({
       </header>
 
       <div>
-        <Label htmlFor="title">Project title</Label>
+        <Label htmlFor="title">Campaign title</Label>
         <Input
           id="title"
           placeholder="The thing you want to make"
@@ -432,7 +432,7 @@ function StoryStep({
       </header>
 
       <div>
-        <Label htmlFor="description">Project description</Label>
+        <Label htmlFor="description">Campaign description</Label>
         <Textarea
           id="description"
           rows={14}
