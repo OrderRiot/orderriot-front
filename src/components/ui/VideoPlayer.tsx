@@ -381,8 +381,8 @@ export function VideoPlayer({ src, className }: Props) {
         )}
       >
         {/* Ring + icon — flex centered, no translate hack needed */}
-        <span className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-black/55 backdrop-blur-sm ring-1 ring-white/25 transition-transform duration-150 hover:scale-105 active:scale-95">
-          <IcoPlay size={26} />
+        <span className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] transition-transform duration-150 hover:scale-110 active:scale-95">
+          <IcoPlay size={52} />
         </span>
       </button>
 
@@ -478,12 +478,12 @@ export function VideoPlayer({ src, className }: Props) {
                   className={cn(
                     "w-20 cursor-pointer appearance-none bg-transparent",
                     // track
-                    "[&::-webkit-slider-runnable-track]:h-[3px] [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/30",
+                    "[&::-webkit-slider-runnable-track]:h-[5px] [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/30",
                     // thumb
-                    "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:mt-[-5px]",
+                    "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:mt-[-5px]",
                     // firefox
-                    "[&::-moz-range-track]:h-[3px] [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/30",
-                    "[&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0",
+                    "[&::-moz-range-track]:h-[5px] [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/30",
+                    "[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0",
                   )}
                 />
               </div>
