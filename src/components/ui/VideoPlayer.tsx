@@ -264,7 +264,7 @@ export function VideoPlayer({ src, className }: Props) {
     [ratioFromClientX, seekToRatio],
   );
 
-  const onBarMouseMove = useCallback(
+  /* const onBarMouseMove = useCallback(
     (e: React.MouseEvent) => {
       const bar = barRef.current;
       if (!bar || !duration) return;
@@ -281,12 +281,12 @@ export function VideoPlayer({ src, className }: Props) {
       }, 40);
     },
     [duration],
-  );
+  ); */
 
-  const onBarMouseLeave = useCallback(() => {
+  /* const onBarMouseLeave = useCallback(() => {
     setPreview(null);
     clearTimeout(previewSeekTimer.current);
-  }, []);
+  }, []); */
 
   // ── Volume ──────────────────────────────────────────────────────────────────
 
@@ -333,9 +333,8 @@ export function VideoPlayer({ src, className }: Props) {
         onClick={togglePlay}
       />
 
-      {/* ── Preview video — rendered once, shown inside seek preview box ────── */}
-      {/* Keep it here so previewRef is stable regardless of preview state */}
-      <div
+      {/* SEEK PREVIEW DISABLED */}
+      {/* <div
         aria-hidden
         className={cn(
           "pointer-events-none absolute z-20 transition-opacity duration-100",
@@ -369,7 +368,7 @@ export function VideoPlayer({ src, className }: Props) {
         <p className="mt-1 text-center font-mono text-[11px] tabular-nums text-white/75">
           {preview ? fmt(preview.time) : ""}
         </p>
-      </div>
+      </div> */}
 
       {/* ── Centre play/pause overlay ────────────────────────────────────────── */}
       <button
@@ -410,8 +409,8 @@ export function VideoPlayer({ src, className }: Props) {
             className="group/bar relative mb-3.5 flex items-center cursor-pointer"
             style={{ height: 14 }}
             onMouseDown={onBarMouseDown}
-            onMouseMove={onBarMouseMove}
-            onMouseLeave={onBarMouseLeave}
+            // onMouseMove={onBarMouseMove}
+            // onMouseLeave={onBarMouseLeave}
           >
             {/* Track */}
             <div className="absolute inset-x-0 rounded-full bg-white/20 transition-all duration-150 group-hover/bar:h-[5px] h-[3px] top-1/2 -translate-y-1/2" />
