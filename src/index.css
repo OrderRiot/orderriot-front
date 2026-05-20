@@ -5,11 +5,11 @@
 @layer base {
   :root {
     /* Modern clean palette */
-    --paper: 220 20% 99%;            /* #FAFBFF near-white, slightly cool */
-    --ink: 222 20% 9%;               /* #0D0F17 cool near-black */
-    --muted: 220 14% 95%;            /* light surface */
-    --muted-foreground: 220 8% 46%;  /* secondary text */
-    --line: 220 10% 89%;             /* borders */
+    --paper: 220 18% 98.5%;          /* near-white, slightly cool */
+    --ink: 222 15% 15%;              /* cool near-black, softer contrast */
+    --muted: 220 12% 96%;            /* light surface */
+    --muted-foreground: 220 7% 50%;  /* secondary text */
+    --line: 220 8% 91%;              /* borders */
     --accent: 152 60% 36%;           /* brand green */
     --accent-foreground: 0 0% 100%;  /* white on green */
     --destructive: 0 72% 52%;
@@ -17,6 +17,13 @@
   }
 
   * { border-color: hsl(var(--line)); }
+
+  /* Soft corners on full-bordered content blocks.
+     Uses @layer base so explicit rounded-* utilities still override. */
+  [class~="border"][class~="border-line"],
+  [class~="border-2"][class~="border-line"] {
+    border-radius: 4px;
+  }
 
   html, body, #root {
     height: 100%;
@@ -33,7 +40,7 @@
 
   h1, h2, h3, h4 {
     font-family: "Space Grotesk", ui-sans-serif, sans-serif;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
   }
 
   ::selection { background: hsl(var(--accent)); color: white; }

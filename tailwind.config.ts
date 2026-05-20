@@ -55,14 +55,14 @@ export default {
         mono: ['"Space Grotesk"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       fontSize: {
-        "display-xl": ["clamp(3.25rem, 7.5vw, 7.5rem)", { lineHeight: "0.96", letterSpacing: "-0.03em" }],
-        "display-lg": ["clamp(2.5rem, 5.5vw, 5.5rem)", { lineHeight: "1.0", letterSpacing: "-0.025em" }],
-        "display-md": ["clamp(1.875rem, 3.5vw, 3.5rem)", { lineHeight: "1.06", letterSpacing: "-0.02em" }],
-        "display-sm": ["clamp(1.375rem, 2vw, 2.125rem)", { lineHeight: "1.15", letterSpacing: "-0.015em" }],
+        "display-xl": ["clamp(3.25rem, 7.5vw, 7.5rem)", { lineHeight: "0.98", letterSpacing: "-0.025em" }],
+        "display-lg": ["clamp(2.5rem, 5.5vw, 5.5rem)", { lineHeight: "1.03", letterSpacing: "-0.02em" }],
+        "display-md": ["clamp(1.875rem, 3.5vw, 3.5rem)", { lineHeight: "1.08", letterSpacing: "-0.016em" }],
+        "display-sm": ["clamp(1.375rem, 2vw, 2.125rem)", { lineHeight: "1.17", letterSpacing: "-0.012em" }],
       },
       letterSpacing: {
-        "editorial-tight": "-0.03em",
-        editorial: "-0.02em",
+        "editorial-tight": "-0.025em",
+        editorial: "-0.015em",
         loose: "0.1em",
       },
       borderRadius: {

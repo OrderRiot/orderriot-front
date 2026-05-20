@@ -195,7 +195,7 @@ export default function CampaignDetail() {
                 </Badge>
               )}
             </div>
-            <h1 className="font-display text-display-lg leading-[0.96] tracking-editorial-tight text-balance">
+            <h1 className="font-display text-display-lg tracking-editorial-tight text-balance">
               {c.title}
             </h1>
             {c.subtitle && (
