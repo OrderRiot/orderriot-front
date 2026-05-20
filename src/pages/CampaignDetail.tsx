@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Eye, MapPin, Send, Share2, ShieldCheck, Tag, XCircle } from "lucide-react";
@@ -12,6 +12,7 @@ import { Comments } from "@/components/campaign/Comments";
 import { BackDialog } from "@/components/campaign/BackDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBanner } from "@/components/ui/status-banner";
+import { ga } from "@/lib/analytics";
 import {
   useCampaign,
   useMe,
@@ -36,6 +37,18 @@ export default function CampaignDetail() {
   const submit = useSubmitCampaign(campNumericId);
   const [pledgeOpen, setPledgeOpen] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+
+  useEffect(() => {
+    if (!camp.data) return;
+    const c = camp.data;
+    ga.viewItem({
+      id: String(c.camp_id),
+      name: c.title,
+      category: c.category,
+      contentType: "campaign",
+      value: c.goal_amount,
+    });
+  }, [camp.data?.camp_id]);
 
   if (camp.isLoading) {
     return (
@@ -90,6 +103,7 @@ export default function CampaignDetail() {
       return;
     }
     setSelectedReward(r ?? null);
+    ga.beginCheckout({ campaignId: c.camp_id, campaignTitle: c.title, rewardTitle: r?.title });
     setPledgeOpen(true);
   }
 
@@ -429,6 +443,7 @@ export default function CampaignDetail() {
         open={pledgeOpen}
         onOpenChange={setPledgeOpen}
         campId={c.camp_id}
+        campaignTitle={c.title}
         reward={selectedReward}
       />
     </article>

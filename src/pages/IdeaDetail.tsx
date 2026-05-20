@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Lightbulb, ArrowRight, Pencil, Trash2, Globe, Upload, X, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VideoPlayer } from "@/components/ui/VideoPlayer";
+import { ga } from "@/lib/analytics";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,16 @@ export default function IdeaDetail() {
   const convert = useConvertIdea(ideaNumericId);
 
   const [showDelete, setShowDelete] = useState(false);
+
+  useEffect(() => {
+    if (!idea.data) return;
+    ga.viewItem({
+      id: String(idea.data.id),
+      name: idea.data.title,
+      category: idea.data.category,
+      contentType: "idea",
+    });
+  }, [idea.data?.id]);
 
   if (idea.isLoading) {
     return (
@@ -94,6 +105,7 @@ export default function IdeaDetail() {
   async function handleInterest() {
     try {
       const res = await toggleInterest.mutateAsync();
+      if (idea.data) ga.ideaInterest({ ideaId: idea.data.id, interested: res.interested });
       toast.success(res.interested ? "You're interested!" : "Interest removed.");
     } catch (err) {
       toast.error(apiError(err));

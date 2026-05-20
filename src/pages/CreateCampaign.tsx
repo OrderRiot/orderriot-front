@@ -30,6 +30,7 @@ import {
   useUpdateCampaign,
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
+import { ga } from "@/lib/analytics";
 import { formatMoney, getYouTubeId, isVideoUrl, pct } from "@/lib/utils";
 import type { Campaign } from "@/lib/types";
 
@@ -272,6 +273,7 @@ export default function CreateCampaign() {
               }
               try {
                 await submit.mutateAsync();
+                if (draftId) ga.campaignSubmitted({ campaignId: draftId });
                 toast.success("Submitted for review.");
                 navigate(`/campaigns/${draftId}`);
               } catch (err) {

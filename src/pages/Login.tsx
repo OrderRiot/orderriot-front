@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { ga } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ export default function Login() {
   async function onSubmit(values: Values) {
     try {
       await login.mutateAsync(values);
+      ga.login("email");
       toast.success("Welcome back.");
       navigate(redirectTo, { replace: true });
     } catch (err) {
@@ -135,6 +137,7 @@ export default function Login() {
 
           <GoogleAuthButton
             onSuccess={(isNewUser) => {
+              if (isNewUser) ga.signUp("google"); else ga.login("google");
               toast.success(isNewUser ? "Welcome to OrderRiot." : "Welcome back.");
               navigate(isNewUser ? "/profile" : redirectTo, { replace: true });
             }}

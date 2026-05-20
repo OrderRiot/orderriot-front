@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useBackCampaign } from "@/lib/queries";
 import { apiError } from "@/lib/api";
+import { ga } from "@/lib/analytics";
 import type { Reward, PaymentMode } from "@/lib/types";
 import { formatMoney } from "@/lib/utils";
 
@@ -26,11 +27,13 @@ export function BackDialog({
   open,
   onOpenChange,
   campId,
+  campaignTitle,
   reward,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   campId: number;
+  campaignTitle: string;
   reward?: Reward | null;
 }) {
   const back = useBackCampaign();
@@ -62,6 +65,7 @@ export function BackDialog({
         contrib_amount: n,
         payment_mode: mode,
       });
+      ga.purchase({ campaignId: campId, campaignTitle, amount: n });
       toast.success("Pledge placed. Thank you.");
       onOpenChange(false);
     } catch (err) {

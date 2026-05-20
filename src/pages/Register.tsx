@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { ga } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,7 @@ export default function Register() {
       });
       // Auto-login after register
       await login.mutateAsync({ email: values.email, password: values.password });
+      ga.signUp("email");
       toast.success("You're in. Welcome to OrderRiot.");
       navigate("/discover", { replace: true });
     } catch (err) {
@@ -172,6 +174,7 @@ export default function Register() {
 
         <GoogleAuthButton
           onSuccess={(isNewUser) => {
+            if (isNewUser) ga.signUp("google"); else ga.login("google");
             toast.success(isNewUser ? "Account created. Welcome to OrderRiot." : "Welcome back.");
             navigate(isNewUser ? "/profile" : "/discover", { replace: true });
           }}

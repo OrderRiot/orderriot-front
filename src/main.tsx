@@ -39,6 +39,9 @@ import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "@/pages/NotFound";
 
 import "./index.css";
+import { initGA } from "@/lib/analytics";
+
+initGA();
 
 const queryClient = new QueryClient({
   defaultOptions: {
