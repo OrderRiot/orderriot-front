@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Lightbulb, ArrowRight, Pencil, Trash2, Globe, Upload, X, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
@@ -457,7 +458,7 @@ function IdeaMediaSection({
             return (
               <div key={i} className="relative group border border-line">
                 {isVideo ? (
-                  <video src={url} className="h-40 w-full object-cover" preload="metadata" controls />
+                  <VideoPlayer src={url} className="h-40 w-full" />
                 ) : (
                   <a href={url} target="_blank" rel="noopener noreferrer">
                     <img src={url} alt={`Media ${i + 1}`} className="h-40 w-full object-cover hover:opacity-90 transition-opacity" />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
 import { isVideoUrl, getYouTubeId } from "@/lib/utils";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 
 function MainMedia({ url, title }: { url: string; title: string }) {
   const ytId = getYouTubeId(url);
@@ -17,7 +18,7 @@ function MainMedia({ url, title }: { url: string; title: string }) {
     );
   }
   if (isVideoUrl(url)) {
-    return <video key={url} src={url} controls preload="metadata" className="h-full w-full" />;
+    return <VideoPlayer key={url} src={url} className="h-full w-full" />;
   }
   return (
     <img
