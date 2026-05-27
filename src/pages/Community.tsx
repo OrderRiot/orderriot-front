@@ -272,7 +272,7 @@ export default function Community() {
               ? <EmptyState label="No published ideas yet." />
               : <IdeaGrid items={(tab === "all" ? ideas.data!.slice(0, 6) : ideas.data!).map((i) => ({
                   id: i.id, title: i.title, category: i.category, slug: i.slug,
-                  subtitle: i.subtitle, owner_username: i.owner_username, interest_count: i.interest_count,
+                  subtitle: i.subtitle, interest_count: i.interest_count,
                 }))} />
             }
           </Section>
