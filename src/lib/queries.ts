@@ -492,6 +492,14 @@ export function useRejectVerification(id: number) {
 
 // ── Organizations ────────────────────────────────────────────────
 
+export function useOrganizations(params: { search?: string; org_type?: string } = {}) {
+  return useQuery({
+    queryKey: ["organizations", params],
+    queryFn: async () => (await api.get<OrgListItem[]>("/organizations/", { params })).data,
+    staleTime: 30_000,
+  });
+}
+
 export function useMyOrganizations() {
   return useQuery({
     queryKey: qk.myOrganizations,

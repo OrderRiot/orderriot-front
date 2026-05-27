@@ -18,6 +18,7 @@ import { UserType } from "@/lib/types";
 
 const links = [
   { to: "/discover", label: "Discover" },
+  { to: "/community", label: "Community" },
   { to: "/ideas", label: "Ideas" },
   { to: "/collabs", label: "Collaborate" },
   { to: "/create", label: "Start a campaign" },

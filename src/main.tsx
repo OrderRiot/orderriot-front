@@ -36,6 +36,7 @@ import Messages from "@/pages/Messages";
 import ConversationView from "@/pages/ConversationView";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import Community from "@/pages/Community";
 import NotFound from "@/pages/NotFound";
 
 import "./index.css";
@@ -149,6 +150,7 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      { path: "/community", element: <Community /> },
       { path: "/collabs", element: <CollabBoard /> },
       {
         path: "/collabs/new",
