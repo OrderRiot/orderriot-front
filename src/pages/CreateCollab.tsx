@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VisibilityPicker } from "@/components/ui/VisibilityPicker";
 import { useCreateCollab, useMyIdeas, useMyCampaigns, useMe, useMyOrganizations } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { PRESET_SKILLS } from "./CollabBoard";
-import type { CollabCallType, CollabPostCreatePayload, CollabPostType } from "@/lib/types";
+import type { CollabCallType, CollabPostCreatePayload, CollabPostType, Visibility } from "@/lib/types";
 
 const CALL_TYPE_OPTIONS: { value: CollabCallType; label: string; hint: string }[] = [
   {
@@ -48,6 +49,7 @@ export default function CreateCollab() {
   const [supportType, setSupportType] = useState("");
   const [ideaId, setIdeaId] = useState<number | "">("");
   const [campaignId, setCampaignId] = useState<number | "">("");
+  const [visibility, setVisibility] = useState<Visibility>("public");
 
   if (me.data && !me.data.isverified) {
     return (
@@ -86,6 +88,7 @@ export default function CreateCollab() {
       org_id: postType === "offer" && orgId !== "" ? Number(orgId) : undefined,
       idea_id: ideaId !== "" ? Number(ideaId) : undefined,
       campaign_id: campaignId !== "" ? Number(campaignId) : undefined,
+      visibility,
     };
     try {
       const post = await createCollab.mutateAsync(payload);
@@ -343,7 +346,11 @@ export default function CreateCollab() {
           </div>
         </div>
 
-        <div className="pt-2 border-t border-line">
+        <div className="pt-2 border-t border-line space-y-4">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">Visibility</div>
+            <VisibilityPicker value={visibility} onChange={setVisibility} />
+          </div>
           <Button onClick={handleSubmit} disabled={createCollab.isPending || !title.trim()}>
             {createCollab.isPending ? "Posting..." : "Post collaboration"}
           </Button>

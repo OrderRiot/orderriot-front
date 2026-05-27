@@ -16,7 +16,8 @@ import {
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import type { FaqItem } from "@/lib/types";
+import { VisibilityPicker } from "@/components/ui/VisibilityPicker";
+import type { FaqItem, Visibility } from "@/lib/types";
 import { StoryEditor } from "@/components/idea/StoryEditor";
 import { SortableMedia } from "@/components/idea/SortableMedia";
 
@@ -86,6 +87,7 @@ export default function EditIdea() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("public");
 
   if (idea.isLoading) {
     return (
@@ -123,6 +125,7 @@ export default function EditIdea() {
     setRisks(idea.data.risks ?? "");
     setFaqs(idea.data.faqs ?? []);
     setTags(idea.data.tags ?? []);
+    setVisibility((idea.data.visibility as Visibility) ?? "public");
     setInitialized(true);
   }
 
@@ -171,6 +174,7 @@ export default function EditIdea() {
       await update.mutateAsync({
         faqs: faqs.length > 0 ? faqs : undefined,
         tags: tags.length > 0 ? tags : undefined,
+        visibility,
       });
       qc.invalidateQueries({ queryKey: qk.idea(slug ?? ideaId) });
       localStorage.removeItem(`edit-idea-story-${ideaId}`);
@@ -552,11 +556,15 @@ export default function EditIdea() {
               <p className="text-[10px] text-muted-foreground">{tags.length}/5 tags</p>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep("risks")}>Back</Button>
-              <Button onClick={handleFinish} disabled={update.isPending}>
-                {update.isPending ? "Saving…" : "Save changes"}
-              </Button>
+            <div className="pt-4 border-t border-line">
+              <div className="text-xs font-medium mb-2">Visibility</div>
+              <VisibilityPicker value={visibility} onChange={setVisibility} className="mb-4" />
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setStep("risks")}>Back</Button>
+                <Button onClick={handleFinish} disabled={update.isPending}>
+                  {update.isPending ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
             </div>
           </div>
         )}

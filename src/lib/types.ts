@@ -41,6 +41,8 @@ export interface TokenWithUser extends AuthTokens {
 
 export type CampaignStatus = "draft" | "pending_review" | "active" | "funded" | "failed" | "cancelled";
 
+export type Visibility = "public" | "unlisted" | "private" | "draft" | "archived";
+
 export interface CampaignListItem {
   camp_id: number;
   slug: string | null;
@@ -52,6 +54,7 @@ export interface CampaignListItem {
   category: string | null;
   location: string | null;
   status: CampaignStatus;
+  visibility: Visibility;
   goal_amount: number;
   current_amount: number;
   media: string[] | null;
@@ -104,6 +107,7 @@ export interface IdeaListItem {
   rough_goal: number | null;
   media_urls: string[] | null;
   status: IdeaStatus;
+  visibility: Visibility;
   campaign_id: number | null;
   campaign_slug: string | null;
   interest_count: number;
@@ -134,6 +138,7 @@ export interface IdeaCreatePayload {
   risks?: string | null;
   faqs?: FaqItem[] | null;
   tags?: string[] | null;
+  visibility?: Visibility;
 }
 
 export type IdeaUpdatePayload = Partial<IdeaCreatePayload>;
@@ -237,6 +242,7 @@ export interface CollabPost {
   call_type: CollabCallType;
   support_type: string | null;
   status: CollabStatus;
+  visibility: Visibility;
   response_count: number;
   created_at: string;
 }
@@ -263,6 +269,7 @@ export interface CollabPostCreatePayload {
   org_id?: number | null;
   idea_id?: number | null;
   campaign_id?: number | null;
+  visibility?: Visibility;
 }
 
 // ── Search ───────────────────────────────────────────────────────
@@ -582,6 +589,7 @@ export interface CampaignCreatePayload {
   completion_date?: string | null;
   media?: string[] | null;
   team_members?: number[] | null;
+  visibility?: Visibility;
 }
 
 export type CampaignUpdatePayload = Partial<CampaignCreatePayload>;

@@ -903,7 +903,7 @@ export function useMarkAllRead() {
 
 // ── Collabs ───────────────────────────────────────────────────────
 
-export function useCollabs(params: { skill?: string; post_type?: CollabPostType; idea_id?: number; campaign_id?: number } = {}) {
+export function useCollabs(params: { skill?: string; post_type?: CollabPostType; call_type?: string; idea_id?: number; campaign_id?: number } = {}) {
   return useQuery({
     queryKey: qk.collabs(params),
     queryFn: async () => (await api.get<CollabPost[]>("/collabs/", { params })).data,

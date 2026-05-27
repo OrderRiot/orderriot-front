@@ -15,7 +15,8 @@ import {
 } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Idea, FaqItem } from "@/lib/types";
+import { VisibilityPicker } from "@/components/ui/VisibilityPicker";
+import type { Idea, FaqItem, Visibility } from "@/lib/types";
 import { StoryEditor } from "@/components/idea/StoryEditor";
 import { SortableMedia } from "@/components/idea/SortableMedia";
 
@@ -87,6 +88,7 @@ export default function CreateIdea() {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("public");
 
   const updateIdea = useUpdateIdea(draft?.id ?? 0);
 
@@ -162,6 +164,7 @@ export default function CreateIdea() {
       await updateIdea.mutateAsync({
         faqs: faqs.length > 0 ? faqs : undefined,
         tags: tags.length > 0 ? tags : undefined,
+        visibility,
       });
       localStorage.removeItem("create-idea-story");
       toast.success("Idea saved as draft. Publish it from the idea page.");
@@ -569,11 +572,15 @@ export default function CreateIdea() {
               <p className="text-[10px] text-muted-foreground">{tags.length}/5 tags</p>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep("risks")}>Back</Button>
-              <Button onClick={handleFinish} disabled={updateIdea.isPending}>
-                {updateIdea.isPending ? "Saving…" : "Save idea"}
-              </Button>
+            <div className="pt-4 border-t border-line">
+              <div className="text-xs font-medium mb-2">Visibility</div>
+              <VisibilityPicker value={visibility} onChange={setVisibility} className="mb-4" />
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setStep("risks")}>Back</Button>
+                <Button onClick={handleFinish} disabled={updateIdea.isPending}>
+                  {updateIdea.isPending ? "Saving…" : "Save idea"}
+                </Button>
+              </div>
             </div>
           </div>
         )}

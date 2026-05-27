@@ -47,6 +47,51 @@ const ORG_TYPE_LABELS: Record<string, string> = {
   consultancy: "Consultancy", software: "Software", other: "Other",
 };
 
+const IDEA_CATEGORIES = [
+  "Technology", "Health", "Education", "Environment",
+  "Finance", "Creative", "Social", "Food", "Fashion", "Other",
+];
+
+const CAMPAIGN_CATEGORIES = [
+  "Technology", "Health", "Education", "Environment",
+  "Finance", "Creative", "Social", "Food", "Fashion", "Other",
+];
+
+// ── FilterStrip ──────────────────────────────────────────────────
+
+function FilterStrip({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{label}:</span>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value === value ? "" : opt.value)}
+          className={cn(
+            "shrink-0 px-2.5 py-1 text-xs border transition-colors",
+            value === opt.value
+              ? "bg-ink text-paper border-ink"
+              : "border-line text-muted-foreground hover:border-ink hover:text-ink"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────
 
 export default function Community() {
@@ -54,6 +99,13 @@ export default function Community() {
   const [query, setQuery] = useState(params.get("q") ?? "");
   const tab = (params.get("tab") as Tab) ?? "all";
   const activeQuery = params.get("q") ?? "";
+
+  // Per-tab filter states (URL-driven)
+  const orgTypeFilter      = params.get("org_type") ?? "";
+  const ideaCatFilter      = params.get("idea_cat") ?? "";
+  const campaignCatFilter  = params.get("camp_cat") ?? "";
+  const collabTypeFilter   = params.get("collab_type") ?? "";   // request | offer
+  const collabCallFilter   = params.get("collab_call") ?? "";   // open | outreach | both
 
   useEffect(() => setQuery(params.get("q") ?? ""), [params]);
 
@@ -74,10 +126,13 @@ export default function Community() {
   const searchResults = useSearch(activeQuery);
 
   // Browse queries (when no query)
-  const orgs      = useOrganizations({ search: searching ? undefined : undefined });
-  const ideas     = useIdeas();
-  const campaigns = useCampaigns({ limit: 30 });
-  const collabs   = useCollabs();
+  const orgs      = useOrganizations({ org_type: orgTypeFilter || undefined });
+  const ideas     = useIdeas({ category: ideaCatFilter || undefined });
+  const campaigns = useCampaigns({ limit: 30, category: campaignCatFilter || undefined });
+  const collabs   = useCollabs({
+    post_type: collabTypeFilter as any || undefined,
+    call_type: collabCallFilter || undefined,
+  });
 
   // Derived counts for "All" summary
   const totalOrgs  = searching ? (searchResults.data?.organizations.length ?? 0) : (orgs.data?.length ?? 0);
@@ -148,6 +203,61 @@ export default function Community() {
             </button>
           ))}
         </div>
+
+        {/* ── Per-tab filter strip ── */}
+        {tab === "orgs" && (
+          <div className="container-edge pb-3">
+            <FilterStrip
+              label="Type"
+              value={orgTypeFilter}
+              onChange={(v) => setParam("org_type", v || undefined)}
+              options={Object.entries(ORG_TYPE_LABELS).map(([k, label]) => ({ value: k, label }))}
+            />
+          </div>
+        )}
+        {tab === "ideas" && (
+          <div className="container-edge pb-3">
+            <FilterStrip
+              label="Category"
+              value={ideaCatFilter}
+              onChange={(v) => setParam("idea_cat", v || undefined)}
+              options={IDEA_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
+          </div>
+        )}
+        {tab === "campaigns" && (
+          <div className="container-edge pb-3">
+            <FilterStrip
+              label="Category"
+              value={campaignCatFilter}
+              onChange={(v) => setParam("camp_cat", v || undefined)}
+              options={CAMPAIGN_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
+          </div>
+        )}
+        {tab === "collabs" && (
+          <div className="container-edge pb-3 space-y-2">
+            <FilterStrip
+              label="Type"
+              value={collabTypeFilter}
+              onChange={(v) => setParam("collab_type", v || undefined)}
+              options={[
+                { value: "request", label: "Requests" },
+                { value: "offer",   label: "Offers" },
+              ]}
+            />
+            <FilterStrip
+              label="Call"
+              value={collabCallFilter}
+              onChange={(v) => setParam("collab_call", v || undefined)}
+              options={[
+                { value: "open",     label: "Open call" },
+                { value: "outreach", label: "Outreach" },
+                { value: "both",     label: "Both" },
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Content ── */}

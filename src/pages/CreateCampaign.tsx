@@ -32,7 +32,8 @@ import {
 import { apiError } from "@/lib/api";
 import { ga } from "@/lib/analytics";
 import { formatMoney, getYouTubeId, isVideoUrl, pct } from "@/lib/utils";
-import type { Campaign } from "@/lib/types";
+import { VisibilityPicker } from "@/components/ui/VisibilityPicker";
+import type { Campaign, Visibility } from "@/lib/types";
 
 const categories = [
   "Design",
@@ -1057,6 +1058,19 @@ function ReviewStep({
 }) {
   const camp = useCampaign(String(campId));
   const rewards = useRewards(campId);
+  const updateCampaign = useUpdateCampaign(campId);
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [visInited, setVisInited] = useState(false);
+
+  if (camp.data && !visInited) {
+    setVisibility((camp.data.visibility as Visibility) ?? "public");
+    setVisInited(true);
+  }
+
+  async function handleVisibilityChange(v: Visibility) {
+    setVisibility(v);
+    try { await updateCampaign.mutateAsync({ visibility: v }); } catch { /* noop */ }
+  }
 
   const completeness = useMemo(() => {
     const c = camp.data;
@@ -1135,6 +1149,12 @@ function ReviewStep({
           value={`${rewards.data?.length ?? 0} tier(s)`}
         />
       </dl>
+
+      <div className="border border-line p-5 space-y-3">
+        <div className="text-xs font-medium">Visibility</div>
+        <VisibilityPicker value={visibility} onChange={handleVisibilityChange} />
+        <p className="text-xs text-muted-foreground">Controls who can find and view your campaign page.</p>
+      </div>
 
       <div className="flex flex-col-reverse md:flex-row md:justify-between gap-4 pt-6 border-t border-line">
         <Button type="button" variant="ghost" size="lg" onClick={onBack}>
