@@ -6,24 +6,28 @@ import { useCreateOrganization, useMe } from "@/lib/queries";
 import { apiError } from "@/lib/api";
 import type { OrgCreatePayload, OrgType, EntityType } from "@/lib/types";
 
-type Step = "basics" | "details" | "review";
-const STEPS: Step[] = ["basics", "details", "review"];
+type Step = "basics" | "details" | "story" | "review";
+const STEPS: Step[] = ["basics", "details", "story", "review"];
 
 const ORG_TYPES: { value: OrgType; label: string; hint: string }[] = [
-  { value: "personal", label: "Personal", hint: "Individual creator or freelancer" },
-  { value: "studio", label: "Studio", hint: "Small creative team or production house" },
-  { value: "agency", label: "Agency", hint: "Service agency or consultancy" },
-  { value: "brand", label: "Brand", hint: "Consumer brand or product company" },
-  { value: "ngo", label: "NGO", hint: "Non-profit or charitable organization" },
-  { value: "other", label: "Other", hint: "None of the above" },
+  { value: "marketing",     label: "Marketing",       hint: "Marketing, branding, or growth agencies" },
+  { value: "investors",     label: "Investors",        hint: "Angel investors, VCs, or funding bodies" },
+  { value: "incubators",    label: "Incubators",       hint: "Startup incubators and accelerators" },
+  { value: "manufacturers", label: "Manufacturers",    hint: "Product design, fabrication, factories" },
+  { value: "av_production", label: "A/V Production",   hint: "Audio/video production houses" },
+  { value: "consultancy",   label: "Consultancy",      hint: "Strategy, management, or domain consulting" },
+  { value: "software",      label: "Software Support", hint: "IT, software, or tech service providers" },
+  { value: "other",         label: "Other",            hint: "None of the above" },
 ];
 
 const ENTITY_TYPES: { value: EntityType; label: string }[] = [
-  { value: "solo", label: "Solo / Individual" },
-  { value: "pvt_ltd", label: "Private Limited" },
-  { value: "llc", label: "LLC" },
+  { value: "solo",        label: "Solo / Individual" },
+  { value: "pvt_ltd",     label: "Private Limited" },
+  { value: "llc",         label: "LLC" },
   { value: "partnership", label: "Partnership" },
-  { value: "other", label: "Other" },
+  { value: "ngo",         label: "NGO / Non-profit" },
+  { value: "trust",       label: "Trust" },
+  { value: "other",       label: "Other" },
 ];
 
 function StepIndicator({ current, steps }: { current: Step; steps: Step[] }) {
@@ -65,6 +69,7 @@ export default function CreateOrganization() {
   const me = useMe();
 
   const [step, setStep] = useState<Step>("basics");
+  const [form, setForm] = useState<Partial<OrgCreatePayload>>({});
 
   if (me.isSuccess && !me.data?.isverified) {
     return (
@@ -83,7 +88,6 @@ export default function CreateOrganization() {
       </div>
     );
   }
-  const [form, setForm] = useState<Partial<OrgCreatePayload>>({});
 
   function set(key: keyof OrgCreatePayload, value: unknown) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -137,12 +141,12 @@ export default function CreateOrganization() {
             <label className="block text-xs font-semibold uppercase tracking-wider mb-3">
               Organization type
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {ORG_TYPES.map((t) => (
                 <button
                   key={t.value}
                   onClick={() => set("org_type", t.value)}
-                  className={`border p-4 text-left transition-colors ${
+                  className={`border p-3 text-left transition-colors ${
                     form.org_type === t.value
                       ? "border-ink bg-ink text-paper"
                       : "border-line hover:border-ink"
@@ -150,7 +154,7 @@ export default function CreateOrganization() {
                 >
                   <div className="font-semibold text-sm">{t.label}</div>
                   <div
-                    className={`text-xs mt-0.5 ${
+                    className={`text-xs mt-0.5 leading-tight ${
                       form.org_type === t.value ? "text-paper/70" : "text-muted-foreground"
                     }`}
                   >
@@ -182,11 +186,25 @@ export default function CreateOrganization() {
             </div>
           </div>
 
+          {/* Founded year */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Founded year
+              <span className="ml-2 font-normal text-muted-foreground normal-case">optional</span>
+            </label>
+            <input
+              type="number"
+              className="w-40 border border-line px-4 py-3 text-sm bg-transparent focus:outline-none focus:border-ink"
+              placeholder="e.g. 2018"
+              min={1900}
+              max={new Date().getFullYear()}
+              value={form.founded_year ?? ""}
+              onChange={(e) => set("founded_year", e.target.value ? parseInt(e.target.value) : null)}
+            />
+          </div>
+
           <div className="pt-2">
-            <Button
-              onClick={() => setStep("details")}
-              disabled={!canAdvanceBasics()}
-            >
+            <Button onClick={() => setStep("details")} disabled={!canAdvanceBasics()}>
               Continue
             </Button>
           </div>
@@ -233,14 +251,54 @@ export default function CreateOrganization() {
             />
           </div>
 
+          {/* Ecosystem tags */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-2">
+              Ecosystem / industries
+              <span className="ml-2 font-normal text-muted-foreground normal-case">optional — press Enter to add</span>
+            </label>
+            <EcosystemTagInput
+              tags={form.ecosystem_access ?? []}
+              onChange={(tags) => set("ecosystem_access", tags)}
+            />
+          </div>
+
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep("basics")}>Back</Button>
+            <Button onClick={() => setStep("story")}>Continue</Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Story ── */}
+      {step === "story" && (
+        <div className="space-y-6">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider mb-1">
+              Our Story
+            </label>
+            <p className="text-xs text-muted-foreground mb-3">
+              Tell visitors about your history, journey, and what makes your organization unique. This appears prominently on your org page.
+            </p>
+            <textarea
+              className="w-full border border-line px-4 py-3 text-sm bg-transparent focus:outline-none focus:border-ink resize-none h-52"
+              placeholder="We started in 2019 with a small team in Pune, driven by a belief that Indian manufacturers deserved a direct channel to consumers..."
+              value={form.history ?? ""}
+              onChange={(e) => set("history", e.target.value)}
+            />
+            <div className="text-xs text-muted-foreground mt-1 text-right">
+              {(form.history ?? "").length} chars
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => setStep("details")}>Back</Button>
             <Button onClick={() => setStep("review")}>Review</Button>
           </div>
         </div>
       )}
 
-      {/* ── Step 3: Review ── */}
+      {/* ── Step 4: Review ── */}
       {step === "review" && (
         <div className="space-y-6">
           <div className="border border-line divide-y divide-line">
@@ -248,13 +306,16 @@ export default function CreateOrganization() {
               ["Name", form.name],
               ["Type", ORG_TYPES.find((t) => t.value === form.org_type)?.label],
               ["Entity", ENTITY_TYPES.find((e) => e.value === form.entity_type)?.label],
+              ["Founded", form.founded_year ?? "—"],
               ["Description", form.description || "—"],
               ["Website", form.website || "—"],
               ["License no.", form.license_number || "—"],
+              ["Ecosystem", (form.ecosystem_access ?? []).join(", ") || "—"],
+              ["Story", form.history ? `${form.history.slice(0, 80)}${form.history.length > 80 ? "..." : ""}` : "—"],
             ].map(([label, value]) => (
-              <div key={label} className="flex gap-4 px-5 py-3">
+              <div key={String(label)} className="flex gap-4 px-5 py-3">
                 <div className="text-xs text-muted-foreground w-28 shrink-0 pt-0.5">{label}</div>
-                <div className="text-sm">{value}</div>
+                <div className="text-sm">{String(value)}</div>
               </div>
             ))}
           </div>
@@ -264,13 +325,57 @@ export default function CreateOrganization() {
           </p>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setStep("details")}>Back</Button>
+            <Button variant="outline" onClick={() => setStep("story")}>Back</Button>
             <Button onClick={handleSubmit} disabled={createOrg.isPending}>
               {createOrg.isPending ? "Creating..." : "Create organization"}
             </Button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Ecosystem tag input ───────────────────────────────────────────
+
+function EcosystemTagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) => void }) {
+  const [input, setInput] = useState("");
+
+  function addTag() {
+    const val = input.trim();
+    if (!val || tags.includes(val)) { setInput(""); return; }
+    onChange([...tags, val]);
+    setInput("");
+  }
+
+  function removeTag(t: string) {
+    onChange(tags.filter((x) => x !== t));
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2 min-h-8">
+        {tags.map((t) => (
+          <span key={t} className="flex items-center gap-1 text-xs border border-line px-2 py-1">
+            {t}
+            <button onClick={() => removeTag(t)} className="text-muted-foreground hover:text-destructive">
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          className="border border-line px-3 py-2 text-sm bg-transparent flex-1 focus:outline-none focus:border-ink"
+          placeholder="e.g. FMCG, Automotive, Fintech"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+        />
+        <Button size="sm" variant="outline" onClick={addTag} disabled={!input.trim()}>
+          Add
+        </Button>
+      </div>
     </div>
   );
 }

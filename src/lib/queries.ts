@@ -32,10 +32,20 @@ import type {
   Contribution,
   ContributionCreatePayload,
   LoginPayload,
+  OrgCertification,
+  OrgCertificationCreatePayload,
+  OrgClient,
+  OrgClientCreatePayload,
   OrgCreatePayload,
+  OrgEquipment,
+  OrgEquipmentCreatePayload,
   OrgListItem,
   OrgMember,
   OrgMemberAddPayload,
+  OrgMemberUpdatePayload,
+  OrgOffice,
+  OrgOfficeCreatePayload,
+  OrgOfficeUpdatePayload,
   OrgPortfolioItem,
   SearchResult,
   AdminSearchResult,
@@ -161,6 +171,16 @@ export function useUser(username: string) {
     queryKey: qk.user(username),
     enabled: !!username,
     queryFn: async () => (await api.get<User>(`/users/${username}`)).data,
+  });
+}
+
+export function useUserSearch(q: string) {
+  return useQuery({
+    queryKey: ["users", "search", q],
+    enabled: q.trim().length >= 2,
+    queryFn: async () =>
+      (await api.get<import("./types").UserSearchResult[]>("/users/search", { params: { q } })).data,
+    staleTime: 15_000,
   });
 }
 
@@ -543,6 +563,129 @@ export function useDeleteOrgPortfolioItem(orgId: number) {
       api.delete(`/organizations/${orgId}/portfolio/${itemId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
   });
+}
+
+export function useUpdateOrgMember(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ memberId, payload }: { memberId: number; payload: OrgMemberUpdatePayload }) =>
+      (await api.patch<OrgMember>(`/organizations/${orgId}/members/${memberId}`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useAddOrgCertification(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: OrgCertificationCreatePayload) =>
+      (await api.post<OrgCertification>(`/organizations/${orgId}/certifications`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useDeleteOrgCertification(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (certId: number) =>
+      api.delete(`/organizations/${orgId}/certifications/${certId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export async function uploadOrgCertFile(orgId: number, certId: number, file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await api.post<{ file_url: string }>(
+    `/uploads/organization/${orgId}/certifications/${certId}/file`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data.file_url;
+}
+
+export function useAddOrgOffice(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: OrgOfficeCreatePayload) =>
+      (await api.post<OrgOffice>(`/organizations/${orgId}/offices`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useUpdateOrgOffice(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ officeId, payload }: { officeId: number; payload: OrgOfficeUpdatePayload }) =>
+      (await api.patch<OrgOffice>(`/organizations/${orgId}/offices/${officeId}`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useDeleteOrgOffice(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (officeId: number) =>
+      api.delete(`/organizations/${orgId}/offices/${officeId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useAddOrgEquipment(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: OrgEquipmentCreatePayload) =>
+      (await api.post<OrgEquipment>(`/organizations/${orgId}/equipment`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useDeleteOrgEquipment(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (eqId: number) =>
+      api.delete(`/organizations/${orgId}/equipment/${eqId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export async function uploadEquipmentImages(orgId: number, eqId: number, files: File[]): Promise<string[]> {
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+  const res = await api.post<{ uploaded: string[]; all_images: string[] }>(
+    `/uploads/organization/${orgId}/equipment/${eqId}/images`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data.all_images;
+}
+
+export function useAddOrgClient(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: OrgClientCreatePayload) =>
+      (await api.post<OrgClient>(`/organizations/${orgId}/clients`, payload)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export function useDeleteOrgClient(orgId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (clientId: number) =>
+      api.delete(`/organizations/${orgId}/clients/${clientId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["organization"] }),
+  });
+}
+
+export async function uploadClientLogo(orgId: number, clientId: number, file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await api.post<{ logo_url: string }>(
+    `/uploads/organization/${orgId}/clients/${clientId}/logo`,
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return res.data.logo_url;
 }
 
 export async function uploadOrgAvatar(orgId: number, file: File): Promise<string> {

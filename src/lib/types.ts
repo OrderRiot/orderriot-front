@@ -292,9 +292,18 @@ export interface CollabResponseCreatePayload {
 // ── Organizations ────────────────────────────────────────────────
 
 export type OrgStatus = "pending" | "verified" | "rejected";
-export type OrgType = "personal" | "studio" | "agency" | "brand" | "ngo" | "other";
-export type EntityType = "solo" | "pvt_ltd" | "llc" | "partnership" | "other";
+export type OrgType = "marketing" | "investors" | "incubators" | "manufacturers" | "av_production" | "consultancy" | "software" | "other";
+export type EntityType = "solo" | "pvt_ltd" | "llc" | "partnership" | "ngo" | "trust" | "other";
+
+export interface UserSearchResult {
+  user_id: number;
+  username: string;
+  email: string;
+  avatar_url: string | null;
+}
 export type OrgRole = "owner" | "member" | "collaborator";
+export type MemberType = "permanent" | "freelancer" | "contract";
+export type CertificationType = "ZED" | "ISO9001" | "ISO14001" | "ISO45001" | "ISO27001" | "MSME" | "FSSAI" | "BIS" | "other";
 
 export interface OrgMember {
   id: number;
@@ -303,8 +312,36 @@ export interface OrgMember {
   email: string;
   name: string | null;
   title: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  linkedin_url: string | null;
   role: OrgRole;
+  member_type: MemberType;
   claimed: boolean;
+  created_at: string;
+}
+
+export interface OrgEquipment {
+  id: number;
+  org_id: number;
+  name: string;
+  make: string | null;
+  model_number: string | null;
+  description: string | null;
+  capabilities: string | null;
+  image_urls: string[] | null;
+  created_at: string;
+}
+
+export interface OrgClient {
+  id: number;
+  org_id: number;
+  name: string;
+  industry: string | null;
+  description: string | null;
+  website: string | null;
+  logo_url: string | null;
+  years_worked: string | null;
   created_at: string;
 }
 
@@ -319,6 +356,33 @@ export interface OrgPortfolioItem {
   created_at: string;
 }
 
+export interface OrgCertification {
+  id: number;
+  org_id: number;
+  name: string;
+  cert_type: CertificationType;
+  issuer: string | null;
+  cert_number: string | null;
+  description: string | null;
+  file_url: string | null;
+  issued_date: string | null;
+  expiry_date: string | null;
+  created_at: string;
+}
+
+export interface OrgOffice {
+  id: number;
+  org_id: number;
+  name: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  description: string | null;
+  is_headquarters: boolean;
+  created_at: string;
+}
+
 export interface Organization {
   id: number;
   slug: string | null;
@@ -327,6 +391,8 @@ export interface Organization {
   owner_avatar_url: string | null;
   name: string;
   description: string | null;
+  history: string | null;
+  founded_year: number | null;
   avatar_url: string | null;
   org_type: OrgType;
   entity_type: EntityType;
@@ -338,6 +404,11 @@ export interface Organization {
   created_at: string;
   members: OrgMember[];
   portfolio: OrgPortfolioItem[];
+  ecosystem_access: string[] | null;
+  certifications: OrgCertification[];
+  offices: OrgOffice[];
+  equipment: OrgEquipment[];
+  clients: OrgClient[];
 }
 
 export interface AdminOrganization extends Organization {
@@ -362,11 +433,14 @@ export interface OrgListItem {
 export interface OrgCreatePayload {
   name: string;
   description?: string | null;
+  history?: string | null;
+  founded_year?: number | null;
   org_type: OrgType;
   entity_type: EntityType;
   license_number?: string | null;
   website?: string | null;
   social_links?: Record<string, string> | null;
+  ecosystem_access?: string[] | null;
 }
 
 export type OrgUpdatePayload = Partial<OrgCreatePayload>;
@@ -375,7 +449,19 @@ export interface OrgMemberAddPayload {
   email: string;
   name?: string | null;
   title?: string | null;
+  bio?: string | null;
+  linkedin_url?: string | null;
   role?: OrgRole;
+  member_type?: MemberType;
+}
+
+export interface OrgMemberUpdatePayload {
+  name?: string | null;
+  title?: string | null;
+  bio?: string | null;
+  linkedin_url?: string | null;
+  role?: OrgRole;
+  member_type?: MemberType;
 }
 
 export interface OrgPortfolioItemCreatePayload {
@@ -384,6 +470,44 @@ export interface OrgPortfolioItemCreatePayload {
   media_urls?: string[] | null;
   link?: string | null;
   tags?: string[] | null;
+}
+
+export interface OrgCertificationCreatePayload {
+  name: string;
+  cert_type?: CertificationType;
+  issuer?: string | null;
+  cert_number?: string | null;
+  description?: string | null;
+  issued_date?: string | null;
+  expiry_date?: string | null;
+}
+
+export interface OrgOfficeCreatePayload {
+  name: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  description?: string | null;
+  is_headquarters?: boolean;
+}
+
+export type OrgOfficeUpdatePayload = Partial<OrgOfficeCreatePayload>;
+
+export interface OrgEquipmentCreatePayload {
+  name: string;
+  make?: string | null;
+  model_number?: string | null;
+  description?: string | null;
+  capabilities?: string | null;
+}
+
+export interface OrgClientCreatePayload {
+  name: string;
+  industry?: string | null;
+  description?: string | null;
+  website?: string | null;
+  years_worked?: string | null;
 }
 
 export interface Reward {
