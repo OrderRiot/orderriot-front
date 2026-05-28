@@ -79,12 +79,12 @@ export const qk = {
   myOrganizations: ["organizations", "mine"] as const,
   organization: (slug: string | number) => ["organization", slug] as const,
   adminOrganizations: (status?: OrgStatus) => ["admin", "organizations", status ?? "pending"] as const,
-  ideas: (params?: { category?: string }) => ["ideas", params] as const,
+  ideas: (params?: object) => ["ideas", params] as const,
   myIdeas: ["ideas", "mine"] as const,
   idea: (slug: string | number) => ["idea", slug] as const,
   notifications: ["notifications"] as const,
   notifUnread: ["notifications", "unread"] as const,
-  collabs: (params?: { skill?: string }) => ["collabs", params] as const,
+  collabs: (params?: object) => ["collabs", params] as const,
   myCollabs: ["collabs", "mine"] as const,
   collab: (slug: string | number) => ["collab", slug] as const,
   collabResponses: (id: number) => ["collab", id, "responses"] as const,
@@ -196,10 +196,11 @@ export function useUpdateMe() {
 // ── Campaigns ────────────────────────────────────────────────────
 
 export interface CampaignFilters {
-  category?: string;
+  category?: string;   // comma-separated
   location?: string;
   status?: CampaignStatus;
   search?: string;
+  sort_by?: string;
   skip?: number;
   limit?: number;
 }
@@ -492,7 +493,15 @@ export function useRejectVerification(id: number) {
 
 // ── Organizations ────────────────────────────────────────────────
 
-export function useOrganizations(params: { search?: string; org_type?: string } = {}) {
+export interface OrgFilters {
+  search?: string;
+  org_type?: string;       // comma-separated
+  entity_type?: string;    // comma-separated
+  verified_only?: boolean;
+  sort_by?: string;
+}
+
+export function useOrganizations(params: OrgFilters = {}) {
   return useQuery({
     queryKey: ["organizations", params],
     queryFn: async () => (await api.get<OrgListItem[]>("/organizations/", { params })).data,
@@ -780,7 +789,14 @@ export function useRejectOrganization(id: number) {
 
 // ── Ideas ─────────────────────────────────────────────────────────
 
-export function useIdeas(params: { category?: string } = {}) {
+export interface IdeaFilters {
+  category?: string;   // comma-separated
+  tag?: string;
+  has_goal?: boolean;
+  sort_by?: string;
+}
+
+export function useIdeas(params: IdeaFilters = {}) {
   return useQuery({
     queryKey: qk.ideas(params),
     queryFn: async () => (await api.get<IdeaListItem[]>("/ideas/", { params })).data,
@@ -903,7 +919,16 @@ export function useMarkAllRead() {
 
 // ── Collabs ───────────────────────────────────────────────────────
 
-export function useCollabs(params: { skill?: string; post_type?: CollabPostType; call_type?: string; idea_id?: number; campaign_id?: number } = {}) {
+export interface CollabFilters {
+  skills?: string;      // comma-separated
+  post_type?: string;   // comma-separated: request,offer
+  call_type?: string;   // comma-separated: open,outreach,both
+  sort_by?: string;
+  idea_id?: number;
+  campaign_id?: number;
+}
+
+export function useCollabs(params: CollabFilters = {}) {
   return useQuery({
     queryKey: qk.collabs(params),
     queryFn: async () => (await api.get<CollabPost[]>("/collabs/", { params })).data,

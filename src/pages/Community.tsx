@@ -1,7 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
+  ArrowUpDown,
   Building2,
+  Check,
+  ChevronDown,
   Globe,
   Search,
   ShieldCheck,
@@ -13,7 +16,6 @@ import {
   X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,7 @@ import {
   useCollabs,
 } from "@/lib/queries";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
+import { PRESET_SKILLS } from "@/pages/CollabBoard";
 import type { IdeaListItem, OrgListItem, CampaignListItem, CollabPost } from "@/lib/types";
 
 // ── Tab config ───────────────────────────────────────────────────
@@ -47,47 +50,272 @@ const ORG_TYPE_LABELS: Record<string, string> = {
   consultancy: "Consultancy", software: "Software", other: "Other",
 };
 
-const IDEA_CATEGORIES = [
+const CONTENT_CATEGORIES = [
   "Technology", "Health", "Education", "Environment",
   "Finance", "Creative", "Social", "Food", "Fashion", "Other",
 ];
 
-const CAMPAIGN_CATEGORIES = [
-  "Technology", "Health", "Education", "Environment",
-  "Finance", "Creative", "Social", "Food", "Fashion", "Other",
+// ── FilterBar types & helpers ─────────────────────────────────────
+
+type FilterGroupDef =
+  | { kind: "multi"; id: string; label: string; paramKey: string; options: { value: string; label: string }[] }
+  | { kind: "toggle"; id: string; label: string; paramKey: string };
+
+type SortDef = { value: string; label: string };
+
+function getMulti(params: URLSearchParams, key: string): string[] {
+  return params.get(key)?.split(",").filter(Boolean) ?? [];
+}
+
+// ── Per-tab filter & sort configs ────────────────────────────────
+
+const ORG_FILTERS: FilterGroupDef[] = [
+  { kind: "multi", id: "org_type", label: "Type", paramKey: "org_type",
+    options: Object.entries(ORG_TYPE_LABELS).map(([k, l]) => ({ value: k, label: l })) },
+  { kind: "multi", id: "entity_type", label: "Entity", paramKey: "entity_type",
+    options: [
+      { value: "solo", label: "Solo" }, { value: "pvt_ltd", label: "Pvt Ltd" },
+      { value: "llc", label: "LLC" }, { value: "partnership", label: "Partnership" },
+      { value: "ngo", label: "NGO" }, { value: "trust", label: "Trust" },
+      { value: "other", label: "Other" },
+    ] },
+  { kind: "toggle", id: "org_verified", label: "Verified only", paramKey: "org_verified" },
+];
+const ORG_SORTS: SortDef[] = [
+  { value: "newest", label: "Newest" }, { value: "name_asc", label: "Name A→Z" },
+  { value: "name_desc", label: "Name Z→A" }, { value: "verified_first", label: "Verified first" },
 ];
 
-// ── FilterStrip ──────────────────────────────────────────────────
+const IDEA_FILTERS: FilterGroupDef[] = [
+  { kind: "multi", id: "idea_cat", label: "Category", paramKey: "idea_cat",
+    options: CONTENT_CATEGORIES.map((c) => ({ value: c, label: c })) },
+  { kind: "toggle", id: "idea_goal", label: "Has funding goal", paramKey: "idea_goal" },
+];
+const IDEA_SORTS: SortDef[] = [
+  { value: "newest", label: "Newest" }, { value: "oldest", label: "Oldest" },
+  { value: "interest", label: "Most interest" },
+];
 
-function FilterStrip({
-  label,
-  options,
-  value,
-  onChange,
+const CAMPAIGN_FILTERS: FilterGroupDef[] = [
+  { kind: "multi", id: "camp_cat", label: "Category", paramKey: "camp_cat",
+    options: CONTENT_CATEGORIES.map((c) => ({ value: c, label: c })) },
+];
+const CAMPAIGN_SORTS: SortDef[] = [
+  { value: "newest", label: "Newest" }, { value: "most_funded", label: "Most funded %" },
+  { value: "deadline", label: "Deadline soon" }, { value: "goal_desc", label: "Largest goal" },
+];
+
+const COLLAB_FILTERS: FilterGroupDef[] = [
+  { kind: "multi", id: "collab_type", label: "Type", paramKey: "collab_type",
+    options: [{ value: "request", label: "Request" }, { value: "offer", label: "Offer" }] },
+  { kind: "multi", id: "collab_call", label: "Call type", paramKey: "collab_call",
+    options: [
+      { value: "open", label: "Open call" }, { value: "outreach", label: "Outreach" },
+      { value: "both", label: "Both" },
+    ] },
+  { kind: "multi", id: "collab_skills", label: "Skills", paramKey: "collab_skills",
+    options: PRESET_SKILLS.slice(0, 16).map((s) => ({ value: s, label: s })) },
+];
+const COLLAB_SORTS: SortDef[] = [
+  { value: "newest", label: "Newest" },
+];
+
+// ── FilterBar component ──────────────────────────────────────────
+
+function FilterBar({
+  groups,
+  sorts,
+  sortKey,
+  params,
+  setParam,
 }: {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
+  groups: FilterGroupDef[];
+  sorts: SortDef[];
+  sortKey: string;
+  params: URLSearchParams;
+  setParam: (k: string, v: string | undefined) => void;
 }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(null);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  function toggleItem(key: string, value: string) {
+    const cur = getMulti(params, key);
+    const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
+    setParam(key, next.length ? next.join(",") : undefined);
+  }
+
+  function toggleBool(key: string) {
+    setParam(key, params.get(key) ? undefined : "1");
+  }
+
+  const defaultSort = sorts[0]?.value ?? "newest";
+  const currentSort = params.get(sortKey) ?? defaultSort;
+
+  // Build active pills
+  type Pill = { label: string; onRemove: () => void };
+  const pills: Pill[] = [];
+  for (const g of groups) {
+    if (g.kind === "multi") {
+      for (const v of getMulti(params, g.paramKey)) {
+        const opt = g.options.find((o) => o.value === v);
+        if (opt) pills.push({ label: opt.label, onRemove: () => toggleItem(g.paramKey, v) });
+      }
+    } else {
+      if (params.get(g.paramKey)) pills.push({ label: g.label, onRemove: () => setParam(g.paramKey, undefined) });
+    }
+  }
+  if (currentSort !== defaultSort) {
+    const s = sorts.find((s) => s.value === currentSort);
+    if (s) pills.push({ label: `Sort: ${s.label}`, onRemove: () => setParam(sortKey, undefined) });
+  }
+
+  function clearAll() {
+    for (const g of groups) setParam(g.paramKey, undefined);
+    setParam(sortKey, undefined);
+  }
+
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1">
-      <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">{label}:</span>
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value === value ? "" : opt.value)}
-          className={cn(
-            "shrink-0 px-2.5 py-1 text-xs border transition-colors",
-            value === opt.value
-              ? "bg-ink text-paper border-ink"
-              : "border-line text-muted-foreground hover:border-ink hover:text-ink"
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <div ref={ref} className="space-y-2">
+      {/* Controls row */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {groups.map((g) => {
+          const isOpen = open === g.id;
+          const count = g.kind === "multi"
+            ? getMulti(params, g.paramKey).length
+            : params.get(g.paramKey) ? 1 : 0;
+          return (
+            <div key={g.id} className="relative">
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : g.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-xs border transition-colors whitespace-nowrap",
+                  count > 0
+                    ? "border-ink bg-ink/[0.06] text-ink font-medium"
+                    : "border-line text-muted-foreground hover:border-ink hover:text-ink",
+                )}
+              >
+                {g.label}
+                {count > 0 && (
+                  <span className="flex items-center justify-center h-4 w-4 rounded-full bg-ink text-paper text-[9px] font-bold leading-none">
+                    {count}
+                  </span>
+                )}
+                <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", isOpen && "rotate-180")} />
+              </button>
+
+              {isOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-paper border border-line shadow-lg z-50 py-1 min-w-[160px] max-w-[200px]">
+                  {g.kind === "multi" && g.options.map((opt) => {
+                    const selected = getMulti(params, g.paramKey).includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleItem(g.paramKey, opt.value)}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-muted transition-colors text-left"
+                      >
+                        <span className={cn(
+                          "h-3.5 w-3.5 shrink-0 border flex items-center justify-center transition-colors",
+                          selected ? "border-ink bg-ink" : "border-line",
+                        )}>
+                          {selected && <Check className="h-2 w-2 text-paper" />}
+                        </span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                  {g.kind === "toggle" && (
+                    <button
+                      type="button"
+                      onClick={() => { toggleBool(g.paramKey); setOpen(null); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-muted transition-colors text-left"
+                    >
+                      <span className={cn(
+                        "h-3.5 w-3.5 shrink-0 border flex items-center justify-center",
+                        params.get(g.paramKey) ? "border-ink bg-ink" : "border-line",
+                      )}>
+                        {params.get(g.paramKey) && <Check className="h-2 w-2 text-paper" />}
+                      </span>
+                      {g.label}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Sort */}
+        {sorts.length > 1 && (
+          <div className="relative ml-auto">
+            <button
+              type="button"
+              onClick={() => setOpen(open === "__sort" ? null : "__sort")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs border transition-colors whitespace-nowrap",
+                currentSort !== defaultSort
+                  ? "border-ink bg-ink/[0.06] text-ink font-medium"
+                  : "border-line text-muted-foreground hover:border-ink hover:text-ink",
+              )}
+            >
+              <ArrowUpDown className="h-3 w-3 shrink-0" />
+              {sorts.find((s) => s.value === currentSort)?.label ?? "Sort"}
+              <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open === "__sort" && "rotate-180")} />
+            </button>
+            {open === "__sort" && (
+              <div className="absolute top-full right-0 mt-1 bg-paper border border-line shadow-lg z-50 py-1 min-w-[160px]">
+                {sorts.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => { setParam(sortKey, s.value === defaultSort ? undefined : s.value); setOpen(null); }}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-3 px-3 py-1.5 text-xs hover:bg-muted transition-colors text-left",
+                      currentSort === s.value && "font-semibold text-ink",
+                    )}
+                  >
+                    {s.label}
+                    {currentSort === s.value && <Check className="h-3 w-3 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {pills.length > 0 && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-xs text-muted-foreground hover:text-ink underline ml-1 whitespace-nowrap"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* Active pills */}
+      {pills.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {pills.map((pill, i) => (
+            <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-muted border border-line text-xs">
+              {pill.label}
+              <button type="button" onClick={pill.onRemove} className="text-muted-foreground hover:text-ink">
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -99,13 +327,6 @@ export default function Community() {
   const [query, setQuery] = useState(params.get("q") ?? "");
   const tab = (params.get("tab") as Tab) ?? "all";
   const activeQuery = params.get("q") ?? "";
-
-  // Per-tab filter states (URL-driven)
-  const orgTypeFilter      = params.get("org_type") ?? "";
-  const ideaCatFilter      = params.get("idea_cat") ?? "";
-  const campaignCatFilter  = params.get("camp_cat") ?? "";
-  const collabTypeFilter   = params.get("collab_type") ?? "";   // request | offer
-  const collabCallFilter   = params.get("collab_call") ?? "";   // open | outreach | both
 
   useEffect(() => setQuery(params.get("q") ?? ""), [params]);
 
@@ -125,13 +346,28 @@ export default function Community() {
   // Search results (when query present)
   const searchResults = useSearch(activeQuery);
 
-  // Browse queries (when no query)
-  const orgs      = useOrganizations({ org_type: orgTypeFilter || undefined });
-  const ideas     = useIdeas({ category: ideaCatFilter || undefined });
-  const campaigns = useCampaigns({ limit: 30, category: campaignCatFilter || undefined });
-  const collabs   = useCollabs({
-    post_type: collabTypeFilter as any || undefined,
-    call_type: collabCallFilter || undefined,
+  // Browse queries — all filter params read directly from URL
+  const orgs = useOrganizations({
+    org_type:     params.get("org_type") || undefined,
+    entity_type:  params.get("entity_type") || undefined,
+    verified_only: !!params.get("org_verified"),
+    sort_by:      params.get("org_sort") || undefined,
+  });
+  const ideas = useIdeas({
+    category: params.get("idea_cat") || undefined,
+    has_goal: !!params.get("idea_goal"),
+    sort_by:  params.get("idea_sort") || undefined,
+  });
+  const campaigns = useCampaigns({
+    limit:    30,
+    category: params.get("camp_cat") || undefined,
+    sort_by:  params.get("camp_sort") || undefined,
+  });
+  const collabs = useCollabs({
+    post_type: params.get("collab_type") || undefined,
+    call_type: params.get("collab_call") || undefined,
+    skills:    params.get("collab_skills") || undefined,
+    sort_by:   params.get("collab_sort") || undefined,
   });
 
   // Derived counts for "All" summary
@@ -204,58 +440,25 @@ export default function Community() {
           ))}
         </div>
 
-        {/* ── Per-tab filter strip ── */}
+        {/* ── Per-tab filter bar ── */}
         {tab === "orgs" && (
-          <div className="container-edge pb-3">
-            <FilterStrip
-              label="Type"
-              value={orgTypeFilter}
-              onChange={(v) => setParam("org_type", v || undefined)}
-              options={Object.entries(ORG_TYPE_LABELS).map(([k, label]) => ({ value: k, label }))}
-            />
+          <div className="container-edge pb-3 pt-1">
+            <FilterBar groups={ORG_FILTERS} sorts={ORG_SORTS} sortKey="org_sort" params={params} setParam={setParam} />
           </div>
         )}
         {tab === "ideas" && (
-          <div className="container-edge pb-3">
-            <FilterStrip
-              label="Category"
-              value={ideaCatFilter}
-              onChange={(v) => setParam("idea_cat", v || undefined)}
-              options={IDEA_CATEGORIES.map((c) => ({ value: c, label: c }))}
-            />
+          <div className="container-edge pb-3 pt-1">
+            <FilterBar groups={IDEA_FILTERS} sorts={IDEA_SORTS} sortKey="idea_sort" params={params} setParam={setParam} />
           </div>
         )}
         {tab === "campaigns" && (
-          <div className="container-edge pb-3">
-            <FilterStrip
-              label="Category"
-              value={campaignCatFilter}
-              onChange={(v) => setParam("camp_cat", v || undefined)}
-              options={CAMPAIGN_CATEGORIES.map((c) => ({ value: c, label: c }))}
-            />
+          <div className="container-edge pb-3 pt-1">
+            <FilterBar groups={CAMPAIGN_FILTERS} sorts={CAMPAIGN_SORTS} sortKey="camp_sort" params={params} setParam={setParam} />
           </div>
         )}
         {tab === "collabs" && (
-          <div className="container-edge pb-3 space-y-2">
-            <FilterStrip
-              label="Type"
-              value={collabTypeFilter}
-              onChange={(v) => setParam("collab_type", v || undefined)}
-              options={[
-                { value: "request", label: "Requests" },
-                { value: "offer",   label: "Offers" },
-              ]}
-            />
-            <FilterStrip
-              label="Call"
-              value={collabCallFilter}
-              onChange={(v) => setParam("collab_call", v || undefined)}
-              options={[
-                { value: "open",     label: "Open call" },
-                { value: "outreach", label: "Outreach" },
-                { value: "both",     label: "Both" },
-              ]}
-            />
+          <div className="container-edge pb-3 pt-1">
+            <FilterBar groups={COLLAB_FILTERS} sorts={COLLAB_SORTS} sortKey="collab_sort" params={params} setParam={setParam} />
           </div>
         )}
       </div>
